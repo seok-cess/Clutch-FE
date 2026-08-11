@@ -1,0 +1,1292 @@
+/* 테크니컬 프리시전 마퀴 — 계측기 다크 프리미엄
+   깊이는 헤어라인과 표면 명도 차로만. 발광·그림자·그라디언트 없음. */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+:root {
+  color-scheme: dark;
+
+  --bg: #16181C;          /* 딥 차콜 */
+  --bg-alt: #1B1E23;      /* 섹션 교차 */
+  --surface: #2A2D33;     /* 패널·헤어라인 */
+  --text: #E4E6EA;
+  --muted: #9296A0;       /* 계측 라벨 전용 (표면 위 ≈4.3:1) */
+  --muted-read: #B4B8C2;  /* 읽는 보조 텍스트 — 라벨보다 밝게 (≈7:1) */
+  /* 팀 색 — 롤 중계 관습(블루/레드)을 따르되 채도를 낮춰 계측기 톤 유지.
+     두 색은 밝기를 맞춰(0.363 / 0.344) 한쪽이 시각적으로 튀지 않게 했다.
+     표면 위 대비 5.42:1 / 5.18:1 (둘 다 AA). */
+  --steel: #5AA9E6;       /* 블루팀 + UI 강조 (키커·포커스·보더) */
+  --team-red: #e4514c;    /* 레드팀 전용 — UI 강조로는 쓰지 않는다 */
+
+  /* 화면 전체를 하나의 서체로 통일.
+     Plex Sans 는 tabular figures 를 지원하므로, 등폭 서체 없이도 숫자 자릿수가 맞는다. */
+  --sans: 'IBM Plex Sans', Inter, Arial, sans-serif;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur: 200ms;
+
+  --content-max: 1280px;
+  /* 스코어보드는 좌우 두 팀 표가 나란히 놓여 1280px 로는 열이 잘린다.
+     이 패널만 뷰포트를 더 쓰도록 별도 폭을 둔다. */
+  --wide-max: 1680px;
+  --gap: 24px;
+  --rhythm: 96px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 1.0625rem;   /* 17px — 다크 배경에서 16px는 얇게 읽힌다 */
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* 숫자는 전역으로 등폭(tabular) — 1초마다 갱신되는 골드·CS 가 흔들리지 않는다 */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* 배경 헤어라인 사양 그리드 — 수직 12선 + 96px 수평선 */
+.app {
+  position: relative;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 24px 96px;
+}
+
+.app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  background-image:
+    repeating-linear-gradient(to right, var(--surface) 0 1px, transparent 1px calc(100% / 12)),
+    repeating-linear-gradient(to bottom, var(--surface) 0 1px, transparent 1px 96px);
+  background-size: 100% 100%, 100% 96px;
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+.app > * { position: relative; z-index: 1; }
+
+@media (min-width: 1120px) {
+  .app { padding: 0 64px 96px; }
+}
+
+/* ---- 헤더 ---- */
+.header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--surface);
+  margin-bottom: 48px;
+}
+
+.header h1 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+/* 키커 / 섹션 라벨 — 계측 라벨이므로 작게 유지 */
+.kicker,
+.badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--steel);
+}
+
+.badge {
+  color: var(--muted);
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  padding: 4px 12px;
+}
+
+.badge.live {
+  color: var(--steel);
+  border-color: var(--steel);
+}
+
+.error {
+  border: 1px solid var(--surface);
+  border-left: 2px solid var(--steel);
+  border-radius: 2px;
+  padding: 12px 16px;
+  margin-bottom: var(--gap);
+  font-size: 0.8rem;
+}
+
+/* 읽는 보조 텍스트는 라벨보다 밝게 — 대비 확보 */
+.muted { color: var(--muted-read); font-size: 0.92rem; }
+
+/* ---- 패널 ---- */
+.panel {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  padding: 32px;
+  margin-bottom: var(--rhythm);
+  transition: border-color var(--dur) var(--ease);
+}
+
+/* 섹션 헤더 패턴 — 모노 스틸블루 키커 + Plex Sans 제목 + 밝은 보조 텍스트.
+   모든 섹션이 이 조합을 공유한다. */
+.kicker { display: block; margin-bottom: 16px; }
+
+.panel h2,
+.panel h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 24px;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+  line-height: 1.3;
+}
+
+/* 제목 옆 보조 텍스트는 제목보다 확실히 작게 */
+.panel h2 .muted,
+.panel h3 .muted {
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+
+/* L자 크롭마크 — 계측기 프레임 디테일 */
+.cropmarks::before,
+.cropmarks::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+.cropmarks::before {
+  top: -1px; left: -1px;
+  border-top: 1px solid var(--steel);
+  border-left: 1px solid var(--steel);
+}
+
+.cropmarks::after {
+  bottom: -1px; right: -1px;
+  border-bottom: 1px solid var(--steel);
+  border-right: 1px solid var(--steel);
+}
+
+/* ---- 탭 ---- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--surface);
+  margin-bottom: 32px;
+}
+
+.tab {
+  font-size: 0.95rem;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  padding: 14px 22px;
+  margin-bottom: -1px;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.tab:hover { color: var(--text); }
+
+.tab.active {
+  color: var(--steel);
+  border-bottom-color: var(--steel);
+}
+
+/* ---- 일정 (날짜별 그룹 + 좌우 대칭 매치 행) ---- */
+.date-group { margin-bottom: 8px; }
+
+.date-header {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg-alt);
+  border-left: 2px solid var(--steel);
+  padding: 12px 16px;
+  margin: 24px 0 0;
+}
+
+.date-group:first-child .date-header { margin-top: 0; }
+
+/* 시각 | 상태 | 라운드 | 홈 | 스코어 | 어웨이 | 이동 */
+.match-row {
+  display: grid;
+  grid-template-columns: 56px 52px 96px 1fr 92px 1fr 84px;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--surface);
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease);
+}
+
+.match-row:hover { background: var(--bg-alt); }
+.match-row:hover .match-go { color: var(--steel); }
+
+.match-time {
+  font-size: 0.9rem;
+  color: var(--muted-read);
+}
+
+.match-state {
+  font-size: 0.72rem;
+  text-align: center;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  padding: 3px 0;
+}
+
+.match-state.inProgress {
+  color: var(--steel);
+  border-color: var(--steel);
+}
+
+.match-block {
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 두 팀이 가운데 스코어를 향해 마주본다 */
+.side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.side.home { justify-content: flex-end; }
+.side.away { justify-content: flex-start; }
+
+.side-name {
+  font-size: 0.98rem;
+  color: var(--muted-read);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.side.winner .side-name { color: var(--text); font-weight: 600; }
+
+.match-score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.match-score b { color: var(--muted-read); font-weight: 500; }
+.match-score b.winner { color: var(--text); }
+.match-score .sep { color: var(--muted); font-size: 0.9rem; }
+
+.match-go {
+  font-size: 0.72rem;
+  text-align: right;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  white-space: nowrap;
+  transition: color var(--dur) var(--ease);
+}
+
+@media (max-width: 1119px) {
+  .match-row {
+    grid-template-columns: 52px 1fr 80px 1fr;
+    row-gap: 8px;
+  }
+  .match-state, .match-block, .match-go { display: none; }
+}
+
+.vs {
+  font-size: 0.78rem;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+}
+
+.team-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: saturate(0.92);
+  flex: none;
+}
+
+/* 상세 화면 뒤로가기 */
+.back-btn {
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  background: transparent;
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  color: var(--muted-read);
+  padding: 8px 16px;
+  margin-bottom: 24px;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.back-btn:hover { color: var(--steel); border-color: var(--steel); }
+
+/* ---- 테이블 (순위·선수·상세 공통) ----
+   라벨(th)은 계측 라벨이라 작게, 실제 읽는 값(td)은 충분히 크게. */
+.table-scroll { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1rem;
+}
+
+th {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid var(--bg);
+  background: var(--bg-alt);
+  white-space: nowrap;
+}
+
+td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--bg);
+  transition: color var(--dur) var(--ease);
+}
+
+td.num { text-align: right; }
+
+tbody tr:hover td { color: var(--text); }
+
+/* 순위 그룹 헤더 — 섹션 헤더보다 한 단계 작게 (패널 안의 하위 구분) */
+.standings-section h3 {
+  font-size: 1.05rem;
+  margin: 40px 0 16px;
+}
+
+.standings-section:first-child h3 { margin-top: 0; }
+
+.team-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 강조 행 — 좌측 2px 스틸 블루 표시선 */
+.row-lead td:first-child { border-left: 2px solid var(--steel); }
+.row-lead td { color: var(--text); }
+
+/* ---- 라이브 스코어보드 ---- */
+.live-panel { border-color: var(--surface); }
+
+/**
+ * 인게임 데이터 패널(라이브·경기기록)은 컨테이너 밖으로 확장한다.
+ * 아래 선수 상세 표는 아이템 아이콘이 많아 넓은 폭이 필요하다.
+ * 뷰포트가 좁으면 calc 결과가 0 이 되어 자연히 원래 폭으로 돌아간다.
+ */
+.live-panel,
+.history-panel {
+  --overhang: max(0px, min(
+    (var(--wide-max) - var(--content-max)) / 2,
+    (100vw - var(--content-max)) / 2 - 24px
+  ));
+  margin-left: calc(var(--overhang) * -1);
+  margin-right: calc(var(--overhang) * -1);
+}
+
+/**
+ * 단, 스코어보드(좌우 팀 표)는 5열뿐이라 패널 전체 폭을 다 쓰면 너무 성글다.
+ * 가운데로 모아 밀도를 맞춘다 — 아래 상세 표는 넓은 폭을 그대로 쓴다.
+ */
+.players-grid {
+  max-width: 1300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.set-label,
+.block-label {
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: var(--muted-read);
+}
+
+/* 게임 시계 — 계측기 주 눈금 */
+.game-clock {
+  font-size: clamp(2rem, 3.2vw, 2.8rem);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-align: center;
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+
+.meta-line {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 22px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--bg);
+}
+
+.mode-toggle {
+  margin-left: 16px;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.mode-toggle button,
+.game-btn,
+.debug-toggle {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: transparent;
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  color: var(--muted);
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.mode-toggle button:hover,
+.game-btn:hover,
+.debug-toggle:hover { color: var(--text); border-color: var(--steel); }
+
+.mode-toggle button.active,
+.game-btn.active {
+  color: var(--steel);
+  border-color: var(--steel);
+}
+
+.game-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* 오브젝트 행 */
+/* 아래 선수 표와 같은 폭으로 맞춰 한 덩어리로 읽히게 한다 */
+.objectives-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--gap);
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--bg);
+  max-width: 1300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.objectives {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.objectives.red { justify-content: flex-end; }
+
+.obj {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.obj svg { flex: none; }
+.obj b { color: var(--text); font-weight: 500; }
+
+/* 오브젝트 아이콘도 팀 색 — 좌우가 어느 팀인지 즉시 읽히게 */
+.objectives.blue .obj svg { color: var(--steel); }
+.objectives.red .obj svg { color: var(--team-red); }
+
+.gold-diff { text-align: center; min-width: 260px; }
+
+.kills {
+  font-size: clamp(2.2rem, 3.6vw, 3rem);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+
+.kills .sep { color: var(--muted); margin: 0 14px; }
+.blue-text { color: var(--steel); }
+.red-text { color: var(--team-red); }
+
+/* 골드 바 — 헤어라인 계측 눈금. 좌 블루 / 우 레드 점유율 */
+.gold-bar {
+  position: relative;
+  height: 4px;
+  background: var(--team-red);
+  border: 1px solid var(--surface);
+  border-radius: 0;
+  margin: 16px 0 12px;
+  overflow: hidden;
+}
+
+.gold-bar-blue {
+  height: 100%;
+  background: var(--steel);
+  transition: width var(--dur) var(--ease);
+}
+
+.gold-diff-label {
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.gold-diff-label.lead-blue { color: var(--steel); }
+.gold-diff-label.lead-red { color: var(--team-red); }
+
+.gold-diff-label .muted {
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+.players-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+}
+
+@media (max-width: 1119px) {
+  .players-grid { grid-template-columns: 1fr; }
+  .objectives-row { grid-template-columns: 1fr; }
+  .objectives.red { justify-content: flex-start; }
+}
+
+/* 팀별 색 구분 — 헤더 라벨 */
+.player-table.blue th { color: var(--steel); }
+.player-table.red th { color: var(--team-red); }
+
+/* 팀 표시선은 바깥쪽 모서리에 (레드는 열 순서가 반전되므로 우측) */
+.player-table.blue th:first-child { border-left: 2px solid var(--steel); }
+.player-table.red th:last-child { border-right: 2px solid var(--team-red); }
+
+/* 선수명은 팀 색, 수치는 무채 — 색이 데이터를 방해하지 않게 */
+.player-table.blue .col-player { color: var(--steel); }
+.player-table.red .col-player { color: var(--team-red); }
+
+.player-table td.col-player {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;   /* "KT PerfecT" 가 두 줄로 깨지지 않게 */
+}
+
+/* 열 너비 고정 — 남는 공간을 챔피언 열이 다 먹어서
+   선수명이 들쭉날쭉해지는 것을 막는다.
+   min-width 로 좁은 화면에서는 가로 스크롤로 전환. */
+.player-table {
+  table-layout: fixed;
+  min-width: 460px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   [A] 스코어보드 표 — 열별 설정 (여기만 고치면 됨)
+
+   각 열마다 정렬 / 폭 / 좌우 여백을 따로 지정한다.
+   text-align  : left | center | right
+   width       : 5개 합이 100% 가 되게
+   padding     : 좌우 여백(px)
+
+   ※ 레드팀은 열 순서가 반전되지만 클래스로 지정하므로 그대로 적용된다.
+   ═══════════════════════════════════════════════════════════ */
+
+/* --- PLAYER (아이콘 + 닉네임) --- */
+.player-table .col-player { width: 38%; }
+/* 구분(헤더) */
+.player-table.blue th.col-player { text-align: left;  padding-left: 12px; padding-right: 12px; }
+.player-table.red  th.col-player { text-align: right; padding-left: 12px; padding-right: 12px; }
+/* 값(데이터) */
+.player-table.blue td.col-player { text-align: left;  padding-left: 12px; padding-right: 12px; }
+.player-table.red  td.col-player { text-align: right; padding-left: 12px; padding-right: 12px; }
+
+/* --- LV --- */
+.player-table .col-level { width: 9%; }
+.player-table th.col-level { text-align: center; padding-left: 6px; padding-right: 8px; }
+.player-table td.col-level { text-align: right; padding-left: 6px; padding-right: 18px; }
+
+/* --- K/D/A --- */
+.player-table .col-kda { width: 19%; }
+.player-table th.col-kda { text-align: center; padding-left: 6px; padding-right: 8px; }
+.player-table td.col-kda { text-align: center; padding-left: 6px; padding-right: 8px; }
+
+/* --- CS --- */
+.player-table .col-cs { width: 12%; }
+.player-table th.col-cs { text-align: center; padding-left: 6px; padding-right: 8px; }
+.player-table td.col-cs { text-align: right; padding-left: 6px; padding-right: 22px; }
+
+/* --- GOLD --- */
+.player-table .col-gold { width: 22%; }
+.player-table th.col-gold { text-align: center; padding-left: 6px; padding-right: 8px; }
+.player-table td.col-gold { text-align: right; padding-left: 6px; padding-right: 44px; }
+
+/* 수치 열은 잘리면 오독을 부르므로 줄바꿈 금지 */
+.player-table .col-level,
+.player-table .col-kda,
+.player-table .col-cs,
+.player-table .col-gold { white-space: nowrap; }
+
+/* 챔피언 아이콘 + 닉네임 */
+.player-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.player-nick {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 레드팀은 열 순서가 반전되므로 아이콘도 바깥쪽(우측)에 */
+.player-table.red .player-cell { flex-direction: row-reverse; }
+
+/* 헤더 라벨은 짧아서 말줄임될 이유가 없다 ("CH…" 방지) */
+.player-table th { overflow: visible; text-overflow: clip; }
+
+/* 표 형태 구분선 — 열 사이 1px 헤어라인.
+   헤더행(#1B1E23) 위에서도 보이도록 --bg 가 아닌 --surface 톤 사용 */
+.player-table th,
+.player-table td { border-right: 1px solid var(--surface); }
+
+.player-table th:last-child,
+.player-table td:last-child { border-right: none; }
+
+/* 헤더행 아래 경계는 한 단계 또렷하게 */
+.player-table thead th { border-bottom: 1px solid var(--surface); }
+
+/* 셀 내용이 넘치면 말줄임 (줄바꿈 대신) — 선수명에만 적용 */
+.player-table td.col-player {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/**
+ * 좌우 두 표는 서로 독립적이라 각자 내용 높이에 맞춰진다.
+ * 행 높이를 고정해 블루·레드가 같은 선에 놓이게 한다 (좁은 레드 쪽에 맞춤).
+ */
+.player-table tbody tr { height: 52px; }
+
+.player-table tbody td {
+  
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+
+/* ---- 선수 상세 ---- */
+/* 선수 상세 — 스코어보드 아래 하위 섹션 */
+.details-block {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--bg);
+}
+
+.details-block h3 { font-size: 1.05rem; }
+
+.details-table { font-size: 0.94rem; white-space: nowrap; }
+
+/* ═══════════════════════════════════════════════════════════
+   [B] 선수 상세 표 — 열별 설정 (여기만 고치면 됨)
+
+   width      : 열 너비(%). 합이 100% 가 되게 → 열 간격은 이 값으로 조절한다
+   text-align : left | center | right
+   padding    : 셀 안쪽 여백(px). 글자와 셀 경계 사이 공간일 뿐,
+                열 너비는 위 width 가 결정한다 (패딩만 줄여도 간격이 안 좁혀지는 이유)
+   ═══════════════════════════════════════════════════════════ */
+
+/* 열 너비를 지정값대로 고정 — 없으면 브라우저가 내용에 맞춰 임의 배분한다 */
+.details-table { table-layout: fixed; }
+
+/* --- ID --- */
+.details-table .c-id { width: 5%; }
+.details-table th.c-id { text-align: center; padding-left: 12px; padding-right: 12px; }
+.details-table td.c-id { text-align: center; padding-left: 12px; padding-right: 12px; }
+
+/* --- PLAYER (아이콘 + 닉네임) --- */
+.details-table .c-player { width: 10%; }
+.details-table th.c-player { text-align: left; padding-left: 20px; padding-right: 0px; }
+.details-table td.c-player { text-align: left; padding-left: 12px; padding-right: 0px; }
+
+/* --- DMG % --- */
+.details-table .c-dmg { width: 5%; }
+.details-table th.c-dmg { text-align: center; padding-left: 12px; padding-right: 10px; }
+.details-table td.c-dmg { text-align: right; padding-left: 12px; padding-right: 22px; }
+
+/* --- KP % --- */
+.details-table .c-kp { width: 5%; }
+.details-table th.c-kp { text-align: center; padding-left: 12px; padding-right: 10px; }
+.details-table td.c-kp { text-align: right; padding-left: 12px; padding-right: 22px; }
+
+/* --- WARD + --- */
+.details-table .c-wardp { width: 5%; }
+.details-table th.c-wardp { text-align: center; padding-left: 2px; padding-right: 2px; }
+.details-table td.c-wardp { text-align: center; padding-left: 2px; padding-right: 2px; }
+
+/* --- WARD − --- */
+.details-table .c-wardm { width: 5%; }
+.details-table th.c-wardm { text-align: center; padding-left: 2px; padding-right: 2px; }
+.details-table td.c-wardm { text-align: center; padding-left: 2px; padding-right: 2px; }
+
+/* --- GOLD --- */
+.details-table .c-gold { width: 5%; }
+.details-table th.c-gold { text-align: center; padding-left: 12px; padding-right: 12px; }
+.details-table td.c-gold { text-align: center; padding-left: 12px; padding-right: 12px; }
+
+/* --- ITEMS (아이콘 묶음) --- */
+.details-table .c-items { width: 22%; }
+.details-table th.c-items { text-align: left; padding-left: 20px; padding-right: 2px; }
+.details-table td.c-items { text-align: left; padding-left: 12px; padding-right: 2px; }
+
+/* --- PERKS (아이콘 묶음) --- */
+.details-table .c-perks { width: 18%; }
+.details-table th.c-perks { text-align: left; padding-left: 20px; padding-right: 12px; }
+.details-table td.c-perks { text-align: left; padding-left: 12px; padding-right: 12px; }
+
+/* 아이콘 묶음 정렬 — 위에서 c-items / c-perks 의 text-align 을 바꾸면
+   아래 값도 함께 바꿔야 아이콘이 같은 방향으로 붙는다.
+   flex-start(왼쪽) | center(가운데) | flex-end(오른쪽) */
+.details-table .c-items .icon-row { justify-content: flex-start; }
+.details-table .c-perks .icon-row { justify-content: flex-start; }
+
+/* 표 형태 구분선 — 열 사이 1px 헤어라인 (스코어보드 표와 동일 방식).
+   헤더행(#1B1E23) 위에서도 보이도록 --bg 가 아닌 --surface 톤 사용 */
+.details-table th,
+.details-table td { border-right: 1px solid var(--surface); }
+
+.details-table th:last-child,
+.details-table td:last-child { border-right: none; }
+
+/* 헤더행 아래 경계는 한 단계 또렷하게 */
+.details-table thead th { border-bottom: 1px solid var(--surface); }
+
+/* 아이콘 묶음 셀 — 너비는 위 width 가 결정하므로 min-width 를 두지 않는다
+   (min-width 가 있으면 width 지정이 무시된다) */
+.details-table .id-list {
+  font-size: 0.82rem;
+  white-space: normal;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+/* Data Dragon 아이콘 */
+.icon-row {
+  display: inline-flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.item-icon {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  background: var(--bg);
+}
+
+.rune-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg);
+}
+
+/* 키스톤은 한 단계 크게 — 룬 구성의 중심 */
+.rune-icon.keystone {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--surface);
+}
+
+/* 챔피언 초상화 — 이름은 호버 툴팁으로 */
+.champ-icon {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  display: block;
+}
+
+/* 아이콘 툴팁 */
+.icon-tip-anchor {
+  display: inline-flex;
+  line-height: 0;
+  outline: none;
+}
+
+.icon-tip-anchor:focus-visible .item-icon,
+.icon-tip-anchor:focus-visible .rune-icon,
+.icon-tip-anchor:focus-visible .champ-icon {
+  outline: 1px solid var(--steel);
+  outline-offset: 1px;
+}
+
+.icon-tip-anchor:hover .item-icon,
+.icon-tip-anchor:hover .champ-icon { border-color: var(--steel); }
+
+/* position:fixed — 표의 overflow 에 잘리지 않게 */
+.icon-tip {
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 8px));
+  z-index: 50;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-alt);
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  padding: 10px 14px;
+  width: max-content;
+  max-width: 320px;   /* 설명이 길어도 한 줄로 늘어지지 않게 */
+  white-space: normal;
+  line-height: 1.5;
+  text-align: left;
+}
+
+/* 위쪽 공간이 부족하면 아이콘 아래로 */
+.icon-tip.below { transform: translate(-50%, 8px); }
+
+.icon-tip-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.icon-tip-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.icon-tip-sub {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--steel);
+  margin-left: auto;
+}
+
+.icon-tip-desc {
+  display: block;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--surface);
+  font-size: 0.82rem;
+  color: var(--muted-read);
+}
+
+/* 수치 강조 — 등폭으로 눈에 띄게 */
+.tip-em {
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* 고유 지속/사용 효과 소제목 */
+.tip-head {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--steel);
+  font-weight: 600;
+}
+
+/* 선수 상세 — 10명이 한 표에 섞이므로 팀 색 구분이 특히 중요 */
+.row-blue td:first-child { border-left: 2px solid var(--steel); color: var(--steel); }
+.row-red td:first-child { border-left: 2px solid var(--team-red); color: var(--team-red); }
+
+.details-table .player-name {
+  font-weight: 500;
+}
+
+.row-blue .player-name { color: var(--steel); }
+.row-red .player-name { color: var(--team-red); }
+
+/* ---- 세트 선택 ---- */
+.game-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+
+/* ---- 디버그 ---- */
+/* 최근 폼 (W/L 점) */
+.form {
+  display: inline-flex;
+  gap: 3px;
+  flex: none;
+}
+
+.form-dot {
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1;
+  width: 17px;
+  height: 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  color: var(--muted);
+}
+
+.form-dot.win { color: var(--steel); border-color: var(--steel); }
+.form-dot.loss { color: var(--muted); }
+
+@media (max-width: 1119px) {
+  .form { display: none; }
+}
+
+/* 골드차 추이 그래프 */
+.gold-chart { position: relative; }
+
+/* 헤더 우측 상대 전적 (간단 표기) */
+.h2h-inline {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.h2h-inline-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+.h2h-inline .sep { color: var(--muted); }
+
+/* 스코어 옆 팀 로고 */
+.score-logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin: 0 14px;
+}
+
+/* 드래곤 개수 아이콘 — 호버하면 획득 목록이 아래로 뜬다 */
+.dragon-obj { position: relative; outline: none; }
+.dragon-obj:hover b,
+.dragon-obj:focus-visible b { color: var(--steel); }
+.objectives.red .dragon-obj:hover b,
+.objectives.red .dragon-obj:focus-visible b { color: var(--team-red); }
+
+/* 목록 툴팁 — 표 밖으로 잘리지 않게 fixed */
+.dragon-tip {
+  position: fixed;
+  transform: translate(-50%, 10px);
+  z-index: 50;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--bg-alt);
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  padding: 10px 14px;
+  width: max-content;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.dragon-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.dragon-time { color: var(--text); font-weight: 600; }
+.dragon-name { color: var(--muted-read); }
+.dragon-desc { color: var(--muted); font-size: 0.75rem; }
+
+/* 그래프 오브젝트 마커 — SVG 밖 HTML (가로 확대의 영향을 받지 않게) */
+.obj-marks {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* 그래프(높이 270px 중 하단 여백 52px) 안쪽, 시간 라벨 위 */
+  bottom: 44px;
+  height: 0;
+  pointer-events: none;
+}
+
+.obj-mark {
+  position: absolute;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--bg);
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: default;
+  transition: background-color var(--dur) var(--ease);
+}
+
+/* 블루는 위 줄, 레드는 아래 줄 — 같은 시각에 겹치지 않게 */
+.obj-mark.blue {
+  bottom: 22px;
+  border: 1px solid var(--steel);
+  color: var(--steel);
+}
+
+.obj-mark.red {
+  bottom: 0;
+  border: 1px solid var(--team-red);
+  color: var(--team-red);
+}
+
+.obj-mark:hover { background: var(--bg-alt); }
+
+.obj-line {
+  stroke: var(--surface);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+  vector-effect: non-scaling-stroke;
+}
+
+/* 오브젝트 툴팁 — 마커 아래(그래프 안쪽), 한 줄로 작게.
+   범례와 겹치지 않도록 차트 영역 안에 둔다 */
+.obj-tip {
+  position: absolute;
+  bottom: 4px;
+  transform: translateX(-50%);
+  z-index: 3;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  background: var(--bg-alt);
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.obj-tip-time { font-weight: 600; color: var(--text); }
+
+.gold-chart svg {
+  width: 100%;
+  height: 270px;
+  display: block;
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  background: var(--bg);
+  cursor: crosshair;
+}
+
+/* 호버 지시선 */
+.chart-hover line {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart-hover circle { stroke: var(--bg); stroke-width: 1.5; }
+.chart-hover circle.blue { fill: var(--steel); }
+.chart-hover circle.red { fill: var(--team-red); }
+
+/* 툴팁 — SVG 밖 HTML 이라 preserveAspectRatio 왜곡을 받지 않는다 */
+.chart-tip {
+  position: absolute;
+  top: 16px;
+  pointer-events: none;
+  background: var(--bg-alt);
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  padding: 10px 14px;
+  min-width: 168px;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  z-index: 2;
+}
+
+.tip-time {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--surface);
+}
+
+.tip-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.tip-row b { margin-left: auto; color: var(--text); font-weight: 500; }
+.tip-row .muted { font-size: 0.7rem; }
+
+.tip-diff {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--surface);
+  font-weight: 500;
+}
+
+.chart-grid {
+  stroke: var(--surface);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart-zero {
+  stroke: var(--muted);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart-line {
+  fill: none;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart-line.blue { stroke: var(--steel); }
+.chart-line.red { stroke: var(--team-red); }
+
+.chart-area { stroke: none; }
+.chart-area.blue { fill: var(--steel); opacity: 0.14; }
+.chart-area.red { fill: var(--team-red); opacity: 0.14; }
+
+/* SVG 텍스트는 font-variant-numeric 상속이 브라우저마다 달라 명시한다 */
+.chart-label {
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  fill: var(--muted);
+}
+
+.chart-legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+}
+
+.debug-panel { background: var(--bg-alt); }
+
+.debug-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;   /* 헤더 우측 정렬 */
+}
+
+.debug-panel h2 { margin-bottom: 0; width: 100%; }
+.debug-body { margin-top: 24px; }
+
+.debug-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted-read);
+  margin: 16px 0 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--surface);
+}
+
+.debug-summary b { color: var(--text); font-weight: 500; }
+
+.debug-json {
+  background: var(--bg);
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  padding: 16px;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  max-height: 400px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--muted-read);
+}
+
+/* ---- 스크롤 진입 (계측기 바늘이 안정되듯) ---- */
+@keyframes settle {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.panel { animation: settle 220ms var(--ease) both; }
+
+/* ---- 포커스 ---- */
+:focus-visible {
+  outline: 1px solid var(--steel);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
+}
