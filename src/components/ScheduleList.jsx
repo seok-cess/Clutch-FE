@@ -1,3 +1,5 @@
+import { useMemo, useState } from 'react';
+
 const STATE_LABEL = {
   unstarted: '예정',
   inProgress: 'LIVE',
@@ -30,6 +32,39 @@ function groupByDate(schedule) {
   return [...groups.values()];
 }
 
+/** "2026-05" — 월 필터 키 */
+function monthKey(startTime) {
+  const d = new Date(startTime);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthLabel(key) {
+  const [y, m] = key.split('-');
+  return `${y}년 ${Number(m)}월`;
+}
+
+/**
+ * 일정에 등장하는 월 목록 (최신 월이 앞).
+ * 전 시즌을 한 번에 늘어놓으면 수백 경기가 쏟아져 원하는 날짜를 찾기 어렵다.
+ */
+function monthsOf(schedule) {
+  return [...new Set(schedule.map((ev) => monthKey(ev.startTime)))].sort().reverse();
+}
+
+/** 진행 중이거나 가장 가까운 경기가 있는 월 — 처음 열었을 때 보여줄 기본값 */
+function defaultMonth(schedule, months) {
+  const live = schedule.find((ev) => ev.state === 'inProgress');
+  if (live) return monthKey(live.startTime);
+
+  const now = Date.now();
+  const upcoming = schedule
+    .filter((ev) => new Date(ev.startTime).getTime() >= now)
+    .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))[0];
+  if (upcoming) return monthKey(upcoming.startTime);
+
+  return months[0];
+}
+
 /**
  * 날짜별로 묶인 경기 일정.
  * 두 팀이 가운데 스코어를 향해 마주보는 대칭 배치 — 좌측 팀은 우측 정렬, 우측 팀은 좌측 정렬.
@@ -54,13 +89,41 @@ function Form({ matches, side }) {
 }
 
 export default function ScheduleList({ schedule, onSelect, recentForm }) {
+  const months = useMemo(() => monthsOf(schedule), [schedule]);
+  const [month, setMonth] = useState(null);
+
+  // 일정이 처음 도착했을 때만 기본 월을 잡는다 (이후 사용자의 선택을 덮어쓰지 않게)
+  const active = month ?? (months.length ? defaultMonth(schedule, months) : null);
+
+  const visible = useMemo(
+    () => (active ? schedule.filter((ev) => monthKey(ev.startTime) === active) : schedule),
+    [schedule, active],
+  );
+
   if (!schedule.length) {
     return <p className="muted">일정 데이터 없음 (백엔드 첫 폴링 대기 중일 수 있음)</p>;
   }
 
   return (
     <div className="schedule">
-      {groupByDate(schedule).map(({ date, events }) => (
+      {months.length > 1 && (
+        <div className="month-tabs" role="tablist" aria-label="월 선택">
+          {months.map((key) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={key === active}
+              className={`month-tab ${key === active ? 'active' : ''}`}
+              onClick={() => setMonth(key)}
+            >
+              {monthLabel(key)}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {groupByDate(visible).map(({ date, events }) => (
         <section key={date.toISOString()} className="date-group">
           <h3 className="date-header">{fmtDateHeader(date)}</h3>
 

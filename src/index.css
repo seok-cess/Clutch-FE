@@ -216,6 +216,41 @@ body {
 }
 
 /* ---- 일정 (날짜별 그룹 + 좌우 대칭 매치 행) ---- */
+
+/* 월 탭 — 시즌 전체를 한 번에 늘어놓으면 원하는 날짜를 찾기 어렵다 */
+.month-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--surface);
+}
+
+.month-tab {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--muted-read);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.month-tab:hover { color: var(--text); }
+
+.month-tab.active {
+  color: var(--text);
+  border-color: var(--steel);
+}
+
+.month-tab:focus-visible {
+  outline: 1px solid var(--steel);
+  outline-offset: 1px;
+}
+
 .date-group { margin-bottom: 8px; }
 
 .date-header {
