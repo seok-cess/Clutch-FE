@@ -117,6 +117,29 @@ body {
   border-color: var(--steel);
 }
 
+/* 피드가 종료를 알린 상태 — 소스 state 는 아직 inProgress 일 수 있다 */
+.badge.ended {
+  color: var(--muted-read);
+  border-color: var(--muted);
+}
+
+/* 라이브 헤더의 세트 스코어 (예: 1 : 0) */
+.set-score {
+  margin: 0 12px;
+  letter-spacing: 0.04em;
+}
+
+.set-score b { font-weight: 500; }
+.set-score .sep { color: var(--muted); margin: 0 6px; }
+
+/* 세트 버튼의 승자 표기 */
+.set-winner {
+  margin-left: 8px;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--muted-read);
+}
+
 .error {
   border: 1px solid var(--surface);
   border-left: 2px solid var(--steel);
@@ -485,6 +508,19 @@ tbody tr:hover td { color: var(--text); }
   text-align: center;
   line-height: 1.2;
   margin-bottom: 10px;
+}
+
+/* 종료된 세트는 시계가 멈춘다 — 고장이 아니라 끝난 것임을 구분해 보여준다 */
+.game-clock.ended { color: var(--muted-read); }
+
+.game-clock .clock-note {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 4px;
 }
 
 .meta-line {

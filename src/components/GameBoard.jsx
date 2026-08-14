@@ -21,7 +21,7 @@ function formatClock(sec) {
  *  - smooth(기본): 서버가 자동 계산한 재생 시점 → 1초마다 값이 전진
  *  - fresh       : 피드가 준 가장 새 프레임 → 지연은 ~10초 짧지만 10초 단위로 점프
  */
-export default function GameBoard({ gameId, live, teams }) {
+export default function GameBoard({ gameId, live, finished, teams }) {
   const [mode, setMode] = useState('smooth');
   const [board, setBoard] = useState(null);
   const [details, setDetails] = useState(null);
@@ -69,10 +69,17 @@ export default function GameBoard({ gameId, live, teams }) {
     );
   }
 
+  // 피드가 준 최종 상태가 가장 빠르다 (소스 state 는 약 5분 늦다)
+  const isFinished = finished || board.gameState === 'finished';
+
   return (
     <>
       {board.gameTimeSeconds != null && (
-        <div className="game-clock">{formatClock(board.gameTimeSeconds)}</div>
+        <div className={`game-clock ${isFinished ? 'ended' : ''}`}>
+          {formatClock(board.gameTimeSeconds)}
+          {/* 종료 후에는 시계가 멈춘다. 멈춘 게 아니라 끝난 것임을 명시한다 */}
+          {isFinished && <span className="clock-note">세트 종료</span>}
+        </div>
       )}
       <div className="meta-line">
         <span>STATE {board.gameState ?? '-'}</span>
