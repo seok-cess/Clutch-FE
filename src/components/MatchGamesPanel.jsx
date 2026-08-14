@@ -9,6 +9,23 @@ const GAME_STATE_LABEL = {
 };
 
 /**
+ * 세트 표시 라벨.
+ *
+ * state 는 소스(esports-api) 기준이라 실제 종료보다 약 5분 늦다. 그 사이에는
+ * 피드가 먼저 준 feedFinished 로 "종료"를 보여줘야 화면이 멈춘 것처럼 보이지 않는다.
+ */
+function gameStateLabel(g) {
+  if (g.state === 'inProgress' && g.feedFinished) return '종료';
+  return GAME_STATE_LABEL[g.state] ?? g.state;
+}
+
+/** 세트 승자가 확정됐으면 팀 코드를 반환 (gameWins 기준이라 종료 후 약 5분 뒤) */
+function winnerCode(g, teams) {
+  if (!g.winnerTeamId || !teams) return null;
+  return teams.find((t) => t.id === g.winnerTeamId)?.code ?? null;
+}
+
+/**
  * 일정에서 매치를 클릭하면 열리는 세트별 인게임 기록 패널.
  * 과거 경기는 백엔드가 livestats 를 온디맨드 1회 호출해 캐시한 데이터를 보여준다.
  * 선택한 게임이 진행중이면 5초 폴링, 종료면 1회 조회.
@@ -87,7 +104,10 @@ export default function MatchGamesPanel({ match, onClose }) {
               onClick={() => setSelectedGame(g)}
             >
               GAME {g.number}
-              <span className="muted"> · {GAME_STATE_LABEL[g.state] ?? g.state}</span>
+              <span className="muted"> · {gameStateLabel(g)}</span>
+              {winnerCode(g, teams) && (
+                <span className="set-winner"> {winnerCode(g, teams)} WIN</span>
+              )}
             </button>
           ))}
         </div>
@@ -96,7 +116,9 @@ export default function MatchGamesPanel({ match, onClose }) {
       {selectedGame && (
         <GameBoard
           gameId={selectedGame.gameId}
-          live={selectedGame.state === 'inProgress'}
+          // 피드가 끝났다고 하면 state 가 아직 inProgress 여도 폴링할 이유가 없다
+          live={selectedGame.state === 'inProgress' && !selectedGame.feedFinished}
+          finished={selectedGame.state === 'completed' || selectedGame.feedFinished}
           teams={teams ?? match.teams}
         />
       )}
