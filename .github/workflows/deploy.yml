@@ -5,6 +5,10 @@ on:
     branches:
       - dev
 
+concurrency:
+  group: clutch-fe-dev-build
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on:
@@ -13,6 +17,63 @@ jobs:
       - x64
 
     steps:
+      - name: Prepare clean workspace
+        shell: powershell
+        working-directory: ${{ runner.temp }}
+        run: |
+          $workspace = [System.IO.Path]::GetFullPath($env:GITHUB_WORKSPACE)
+          $workspacePrefix = $workspace.TrimEnd("\") + "\"
+          $nodeModules = [System.IO.Path]::GetFullPath(
+            (Join-Path $workspace "node_modules")
+          )
+
+          if (-not $nodeModules.StartsWith(
+            $workspacePrefix,
+            [System.StringComparison]::OrdinalIgnoreCase
+          )) {
+            throw "Unsafe node_modules path: $nodeModules"
+          }
+
+          $staleProcesses = @(
+            Get-Process -Name "esbuild" -ErrorAction SilentlyContinue |
+              Where-Object {
+                $_.Path -and
+                $_.Path.StartsWith(
+                  $workspacePrefix,
+                  [System.StringComparison]::OrdinalIgnoreCase
+                )
+              }
+          )
+
+          foreach ($process in $staleProcesses) {
+            Write-Warning (
+              "Stopping stale esbuild process: PID={0}, Path={1}" -f
+              $process.Id,
+              $process.Path
+            )
+            Stop-Process -Id $process.Id -Force -ErrorAction Stop
+          }
+
+          if (Test-Path -LiteralPath $nodeModules) {
+            for ($attempt = 1; $attempt -le 3; $attempt++) {
+              try {
+                Remove-Item `
+                  -LiteralPath $nodeModules `
+                  -Recurse `
+                  -Force `
+                  -ErrorAction Stop
+                break
+              }
+              catch {
+                if ($attempt -eq 3) {
+                  throw
+                }
+                Write-Warning "Workspace cleanup failed. Retrying..."
+                Start-Sleep -Seconds 2
+              }
+            }
+          }
+
       - name: Checkout dev
         uses: actions/checkout@v6
         with:
