@@ -17,6 +17,34 @@ jobs:
       - x64
 
     steps:
+      - name: Stop frontend server
+        shell: powershell
+        run: |
+          $task = Get-ScheduledTask `
+            -TaskName "Clutch-FE-Server" `
+            -ErrorAction Stop
+
+          if ($task.State -eq "Running") {
+            Stop-ScheduledTask `
+              -TaskName "Clutch-FE-Server" `
+              -ErrorAction Stop
+          }
+
+          for ($attempt = 1; $attempt -le 15; $attempt++) {
+            $listener = Get-NetTCPConnection `
+              -LocalPort 5173 `
+              -State Listen `
+              -ErrorAction SilentlyContinue
+
+            if (-not $listener) {
+              exit 0
+            }
+
+            Start-Sleep -Seconds 1
+          }
+
+          throw "Frontend server did not stop"
+
       - name: Prepare clean workspace
         shell: powershell
         working-directory: ${{ runner.temp }}
@@ -90,6 +118,37 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Start frontend server
+        shell: powershell
+        run: |
+          Start-ScheduledTask `
+            -TaskName "Clutch-FE-Server" `
+            -ErrorAction Stop
+
+      - name: Check frontend health
+        shell: powershell
+        run: |
+          for ($attempt = 1; $attempt -le 15; $attempt++) {
+            try {
+              $response = Invoke-WebRequest `
+                -Uri "http://localhost:5173" `
+                -UseBasicParsing `
+                -TimeoutSec 5
+
+              if ($response.StatusCode -eq 200) {
+                Write-Host "Frontend server is healthy"
+                exit 0
+              }
+            }
+            catch {
+              Write-Warning "Waiting for frontend server..."
+            }
+
+            Start-Sleep -Seconds 2
+          }
+
+          throw "Frontend health check failed"
 
       - name: Upload build output
         uses: actions/upload-artifact@v4
