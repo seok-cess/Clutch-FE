@@ -21,7 +21,7 @@ function formatClock(sec) {
  *  - smooth(기본): 서버가 자동 계산한 재생 시점 → 1초마다 값이 전진
  *  - fresh       : 피드가 준 가장 새 프레임 → 지연은 ~10초 짧지만 10초 단위로 점프
  */
-export default function GameBoard({ gameId, live, finished, teams }) {
+export default function GameBoard({ gameId, live, finished, teams, previewData = null, compact = false }) {
   const [mode, setMode] = useState('smooth');
   const [board, setBoard] = useState(null);
   const [details, setDetails] = useState(null);
@@ -32,6 +32,22 @@ export default function GameBoard({ gameId, live, finished, teams }) {
     if (!gameId) return;
     let cancelled = false;
     setLoaded(false);
+
+    if (previewData) {
+      setBoard(previewData.board);
+      setDetails(previewData.details ?? null);
+      setHistory(previewData.history ?? null);
+      setLoaded(true);
+
+      const timer = window.setInterval(() => {
+        setBoard((currentBoard) => ({
+          ...currentBoard,
+          gameTimeSeconds: currentBoard.gameTimeSeconds + 1,
+          rfc460Timestamp: new Date().toISOString(),
+        }));
+      }, POLL_MS);
+      return () => window.clearInterval(timer);
+    }
 
     // smooth: lag 미지정 → 서버가 소스 요구치에 맞춰 자동 결정 / fresh: lag=0 → 최신 프레임
     const lag = live && mode === 'fresh' ? 0 : undefined;
@@ -58,7 +74,7 @@ export default function GameBoard({ gameId, live, finished, teams }) {
       return () => { cancelled = true; clearInterval(t); };
     }
     return () => { cancelled = true; };
-  }, [gameId, live, mode]);
+  }, [gameId, live, mode, previewData]);
 
   if (!gameId) return null;
   if (!board) {
@@ -99,15 +115,19 @@ export default function GameBoard({ gameId, live, finished, teams }) {
       </div>
       <Scoreboard board={board} teams={teams} objectives={history?.objectives} />
 
-      <div className="details-block">
-        <span className="kicker">GOLD DIFFERENTIAL</span>
-        <h3>골드차 추이 <span className="muted">게임 시간 기준</span></h3>
-        <GoldChart points={history?.points} objectives={history?.objectives} />
-      </div>
+      {!compact && (
+        <>
+          <div className="details-block">
+            <span className="kicker">GOLD DIFFERENTIAL</span>
+            <h3>골드차 추이 <span className="muted">게임 시간 기준</span></h3>
+            <GoldChart points={history?.points} objectives={history?.objectives} />
+          </div>
 
-      {details
-        ? <DetailsTable details={details} />
-        : <p className="muted">선수 상세(딜지분/와드/아이템) 데이터 없음</p>}
+          {details
+            ? <DetailsTable details={details} />
+            : <p className="muted">선수 상세(딜지분/와드/아이템) 데이터 없음</p>}
+        </>
+      )}
     </>
   );
 }

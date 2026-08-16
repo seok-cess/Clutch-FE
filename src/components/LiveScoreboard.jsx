@@ -1,20 +1,34 @@
 import { useEffect, useState } from 'react';
 import { fetchMatchTeams } from '../api.js';
+import BettingPanel from './BettingPanel.jsx';
 import GameBoard from './GameBoard.jsx';
+import WatchPointPanel from './WatchPointPanel.jsx';
+import WatchPointPreview from './WatchPointPreview.jsx';
 
 // TODO: 소스 프레임 해상도(약 10초)를 부드럽게 보간해서 보여주는 건 다음 단계
-export default function LiveScoreboard({ match }) {
+export default function LiveScoreboard({
+  match,
+  userId,
+  preview = false,
+  gamePreview = null,
+  watchRewardActive = false,
+  onWatchMatchChange = () => {},
+}) {
   const gameId = match.activeGameId;
   const [teamA, teamB] = match.teams;
   const [teams, setTeams] = useState(null);   // id 포함 (스코어보드 로고 매칭)
 
   useEffect(() => {
+    if (preview) {
+      setTeams(match.teams);
+      return undefined;
+    }
     let cancelled = false;
     fetchMatchTeams(match.matchId)
       .then((t) => { if (!cancelled) setTeams(t); })
       .catch(() => { /* 로고 없이도 화면은 정상 */ });
     return () => { cancelled = true; };
-  }, [match.matchId]);
+  }, [match.matchId, preview]);
   const currentGame = match.games.find((g) => g.gameId === gameId);
 
   // 진행중인 세트가 피드 기준으로 끝났으면 소스 state(약 5분 지연)를 기다리지 않는다
@@ -45,8 +59,35 @@ export default function LiveScoreboard({ match }) {
       </h2>
 
       {gameId
-        ? <GameBoard gameId={gameId} live={!setEnded} finished={setEnded} teams={teams ?? match.teams} />
+        ? (
+          <GameBoard
+            gameId={gameId}
+            live={!setEnded}
+            finished={setEnded}
+            teams={teams ?? match.teams}
+            previewData={gamePreview}
+            compact={preview}
+          />
+        )
         : <p className="muted">밴픽/대기 중 — 게임이 시작되면 스코어보드가 표시됩니다.</p>}
+
+      {preview ? (
+        <div className="live-action-grid">
+          <WatchPointPreview />
+          <BettingPanel match={match} userId={userId} preview />
+        </div>
+      ) : (
+        <div className="live-action-grid">
+          <WatchPointPanel
+            matchId={match.matchId}
+            userId={userId}
+            enabled={Boolean(gameId) && !setEnded}
+            active={watchRewardActive}
+            onActivate={onWatchMatchChange}
+          />
+          <BettingPanel match={match} userId={userId} />
+        </div>
+      )}
     </section>
   );
 }
