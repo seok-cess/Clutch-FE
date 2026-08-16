@@ -47,6 +47,9 @@ export const fetchHistory = (gameId, lag, step = 10) =>
 export const fetchRecentForm = () => getJson('/api/records/recent');
 export const fetchHeadToHead = (a, b) =>
   getJson(`/api/records/h2h?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`);
+// 시즌 누적 집계 — 적재가 끝난 세트만 대상이라 DB 가 비어 있으면 빈 목록이 온다
+export const fetchPlayerKda = (limit = 5) => getJson(`/api/stats/players/kda?limit=${limit}`);
+export const fetchChampionStats = (limit = 5) => getJson(`/api/stats/champions?limit=${limit}`);
 
 /** 현재 매치에서 노출할 배팅 이벤트와 사용자의 참여 상태를 조회한다. */
 export const fetchCurrentBettingEvent = (matchId, userId) =>
