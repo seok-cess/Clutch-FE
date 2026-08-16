@@ -30,7 +30,49 @@ jobs:
               -ErrorAction Stop
           }
 
-          for ($attempt = 1; $attempt -le 15; $attempt++) {
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            $listener = Get-NetTCPConnection `
+              -LocalPort 5173 `
+              -State Listen `
+              -ErrorAction SilentlyContinue
+
+            if (-not $listener) {
+              exit 0
+            }
+
+            Start-Sleep -Seconds 1
+          }
+
+          $listeners = @(
+            Get-NetTCPConnection `
+              -LocalPort 5173 `
+              -State Listen `
+              -ErrorAction SilentlyContinue
+          )
+
+          $frontendProcessIds = @(
+            $listeners |
+              Select-Object -ExpandProperty OwningProcess -Unique |
+              Where-Object { $_ -gt 0 }
+          )
+
+          foreach ($frontendProcessId in $frontendProcessIds) {
+            Write-Warning (
+              "Force stopping frontend process tree: PID={0}" -f
+              $frontendProcessId
+            )
+
+            & taskkill.exe /PID $frontendProcessId /T /F
+
+            if ($LASTEXITCODE -ne 0) {
+              Write-Warning (
+                "Failed to stop frontend process tree: PID={0}" -f
+                $frontendProcessId
+              )
+            }
+          }
+
+          for ($attempt = 1; $attempt -le 10; $attempt++) {
             $listener = Get-NetTCPConnection `
               -LocalPort 5173 `
               -State Listen `
