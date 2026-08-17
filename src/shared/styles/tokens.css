@@ -1,0 +1,22 @@
+:root {
+  --app-bg: #0e1013;
+  --app-bg-raised: #12161c;
+  --app-bg-muted: #171b22;
+  --app-line: #262c35;
+  --app-line-soft: #1a1f26;
+  --app-text: #edeff2;
+  --app-text-muted: #aeb5c2;
+  --app-text-faint: #747c8b;
+  --app-blue: #5aa9e6;
+  --app-red: #e4514c;
+  --app-gold: #d9a441;
+  --app-green: #55c98a;
+  --app-focus: #7cc3f5;
+  --app-radius: 6px;
+  --app-radius-control: 4px;
+  --app-header-height: 68px;
+  --app-sidebar-width: 244px;
+  --app-content-max: 1440px;
+  --app-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --app-shadow: 0 16px 44px rgba(2, 6, 14, 0.22);
+}

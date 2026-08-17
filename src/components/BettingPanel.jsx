@@ -91,7 +91,7 @@ export default function BettingPanel({ match, userId, preview = false }) {
     try {
       const nextEvent = await fetchCurrentBettingEvent(matchId, userId);
       setEvent(nextEvent);
-      setSelectedTeamId(nextEvent.myBet?.selectedTeamId ?? null);
+      setSelectedTeamId(nextEvent?.myBet?.selectedTeamId ?? null);
     } catch (requestError) {
       setEvent(null);
       setError(requestError.message);
@@ -181,6 +181,9 @@ export default function BettingPanel({ match, userId, preview = false }) {
 
       {error && <p className="betting-message error">{error}</p>}
       {message && <p className="betting-message success">{message}</p>}
+      {!loading && !error && !event && (
+        <p className="betting-message">현재 열린 세트 배팅이 없습니다.</p>
+      )}
 
       {event && (
         <>

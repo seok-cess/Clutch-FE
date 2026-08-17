@@ -1,0 +1,245 @@
+.user-shell {
+  min-height: 100dvh;
+  background: var(--app-bg);
+}
+
+.user-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  min-height: var(--app-header-height);
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 0 28px;
+  border-bottom: 1px solid var(--app-line-soft);
+  background: rgba(14, 16, 19, 0.96);
+  backdrop-filter: blur(14px);
+}
+
+.brand-link {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.08rem;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+}
+
+.brand-link > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--app-red);
+}
+
+.user-navigation {
+  min-width: 0;
+  display: flex;
+  align-self: stretch;
+  align-items: stretch;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.user-navigation::-webkit-scrollbar {
+  display: none;
+}
+
+.user-navigation a {
+  position: relative;
+  min-width: max-content;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 16px;
+  color: var(--app-text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: color 180ms var(--app-ease), background-color 180ms var(--app-ease);
+}
+
+.user-navigation a::after {
+  content: '';
+  position: absolute;
+  right: 16px;
+  bottom: -1px;
+  left: 16px;
+  height: 2px;
+  background: var(--app-blue);
+  transform: scaleX(0);
+  transition: transform 200ms var(--app-ease);
+}
+
+.user-navigation a:hover,
+.user-navigation a.active {
+  color: var(--app-text);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.user-navigation a.active::after {
+  transform: scaleX(1);
+}
+
+.semantic-live-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--app-red);
+  animation: semantic-live 1.6s ease-in-out infinite;
+}
+
+@keyframes semantic-live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.user-tools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.user-id-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--app-text-faint);
+  font-size: 0.67rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+}
+
+.user-id-field input {
+  width: 90px;
+  min-height: 36px;
+  padding: 0 9px;
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius-control);
+  background: var(--app-bg-raised);
+  color: var(--app-text);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.admin-entry {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius-control);
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+  transition: color 180ms var(--app-ease), border-color 180ms var(--app-ease);
+}
+
+.admin-entry:hover {
+  border-color: var(--app-gold);
+  color: var(--app-gold);
+}
+
+.user-content {
+  width: min(100%, var(--app-content-max));
+  margin: 0 auto;
+  padding: 34px 28px 96px;
+}
+
+.user-content > .panel {
+  max-width: none;
+}
+
+.page-live > .panel,
+.match-detail-page > .panel,
+.reward-page > .panel,
+.schedule-surface,
+.standings-surface {
+  margin-bottom: 22px;
+  border-color: var(--app-line-soft);
+  border-radius: var(--app-radius);
+  background: var(--app-bg-raised);
+}
+
+.page-live > .panel,
+.match-detail-page > .panel,
+.reward-page > .panel {
+  padding: clamp(20px, 3vw, 32px);
+}
+
+.schedule-surface,
+.standings-surface {
+  padding: clamp(18px, 3vw, 30px);
+}
+
+.standalone-page {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 16px;
+  padding: 24px;
+  background: var(--app-bg);
+}
+
+.standalone-page .async-state {
+  min-width: min(520px, calc(100vw - 48px));
+  margin: 0;
+}
+
+@media (max-width: 1080px) {
+  .user-header {
+    gap: 14px;
+    padding-inline: 18px;
+  }
+
+  .user-navigation a {
+    padding-inline: 12px;
+  }
+
+  .user-id-field > span,
+  .admin-entry {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .user-header {
+    min-height: auto;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0 12px;
+    padding: 10px 16px 0;
+  }
+
+  .user-navigation {
+    grid-column: 1 / -1;
+    min-height: 50px;
+    order: 3;
+  }
+
+  .user-navigation a {
+    padding-inline: 13px;
+    font-size: 0.84rem;
+  }
+
+  .user-tools {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .user-id-field input {
+    width: 92px;
+    max-width: 40vw;
+  }
+
+  .user-content {
+    padding: 26px 16px 72px;
+  }
+}

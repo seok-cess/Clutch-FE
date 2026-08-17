@@ -1,0 +1,38 @@
+import { useAppData } from '../../app/AppDataProvider.jsx';
+import LiveScoreboard from '../../components/LiveScoreboard.jsx';
+import { EmptyState, ErrorState } from '../../shared/components/AsyncState.jsx';
+import PageHeader from '../../shared/components/PageHeader.jsx';
+
+export default function LivePage() {
+  const {
+    live,
+    userId,
+    activeWatchMatchId,
+    setActiveWatchMatchId,
+    error,
+  } = useAppData();
+
+  return (
+    <main className="user-content page-live">
+      <PageHeader
+        title="라이브 매치 센터"
+        description="실시간 세트 지표를 확인하고 시청 포인트와 세트 승리 배팅에 참여하세요."
+      />
+      {error && <ErrorState>{error}</ErrorState>}
+      {live.live && live.matches.length > 0 ? live.matches.map((match) => (
+        <LiveScoreboard
+          key={match.matchId}
+          match={match}
+          userId={userId}
+          watchRewardActive={match.matchId === activeWatchMatchId}
+          onWatchMatchChange={setActiveWatchMatchId}
+        />
+      )) : (
+        <EmptyState
+          title="현재 진행 중인 경기가 없습니다."
+          description="경기가 시작되면 라이브 지표와 참여 기능이 이 화면에 표시됩니다."
+        />
+      )}
+    </main>
+  );
+}
