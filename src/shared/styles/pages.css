@@ -1,0 +1,568 @@
+.toolbar {
+  min-height: 66px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+}
+
+.compact-field,
+.field-block {
+  display: grid;
+  gap: 7px;
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.compact-field select,
+.field-block input,
+.field-block select,
+.field-block textarea {
+  min-height: 44px;
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius-control);
+  background: #0e1217;
+  color: var(--app-text);
+}
+
+.compact-field select {
+  min-width: 150px;
+  padding: 0 36px 0 12px;
+}
+
+.field-block input,
+.field-block select {
+  width: 100%;
+  padding: 0 12px;
+}
+
+.field-block textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 12px;
+  line-height: 1.55;
+}
+
+.field-block small {
+  color: var(--app-text-faint);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.compact-field select:focus,
+.field-block input:focus,
+.field-block select:focus,
+.field-block textarea:focus {
+  border-color: var(--app-blue);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(90, 169, 230, 0.12);
+}
+
+.responsive-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.app-table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: collapse;
+  color: var(--app-text-muted);
+  font-size: 0.84rem;
+}
+
+.app-table th,
+.app-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--app-line-soft);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.app-table th {
+  color: var(--app-text-faint);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.app-table tbody tr {
+  transition: background-color 160ms var(--app-ease);
+}
+
+.app-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.app-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table-link,
+.coupon-code {
+  color: var(--app-text);
+  font-weight: 750;
+}
+
+.table-link {
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 4px;
+  transition: color 160ms var(--app-ease), text-decoration-color 160ms var(--app-ease);
+}
+
+.table-link:hover {
+  color: var(--app-blue);
+  text-decoration-color: currentColor;
+}
+
+.table-action {
+  text-align: right !important;
+}
+
+.table-pagination {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 16px;
+  border-top: 1px solid var(--app-line-soft);
+}
+
+.status-badge {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius-control);
+  color: var(--app-text-muted);
+  font-size: 0.7rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.status-open,
+.status-issued,
+.status-won {
+  border-color: rgba(85, 201, 138, 0.42);
+  color: #72dfa5;
+  background: rgba(85, 201, 138, 0.07);
+}
+
+.status-ready,
+.status-placed {
+  border-color: rgba(90, 169, 230, 0.42);
+  color: #81c4f5;
+  background: rgba(90, 169, 230, 0.07);
+}
+
+.status-cancelled,
+.status-lost {
+  border-color: rgba(228, 81, 76, 0.45);
+  color: #ff8c86;
+  background: rgba(228, 81, 76, 0.07);
+}
+
+.status-closed,
+.status-used,
+.status-refunded {
+  color: var(--app-text-faint);
+}
+
+/* 사용자 라이브와 리워드 */
+.page-live .live-panel > h2 {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--app-line-soft);
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+}
+
+.page-live .game-clock,
+.match-detail-page .game-clock {
+  margin-top: 20px;
+}
+
+.page-live .live-action-grid {
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top-color: var(--app-line-soft);
+}
+
+.page-live .live-action-grid .watch-point-panel,
+.page-live .live-action-grid .betting-panel {
+  border-color: var(--app-line-soft);
+  border-radius: var(--app-radius);
+  background: #0e1217;
+}
+
+.page-live .betting-submit button:not(:disabled),
+.page-live .watch-point-footer button:not(:disabled) {
+  border-color: var(--app-gold);
+  background: var(--app-gold);
+  color: #17130a;
+  font-weight: 800;
+}
+
+.reward-page > .my-page-panel {
+  margin-bottom: 22px;
+}
+
+.reward-page .my-point-card {
+  border-left: none;
+  border: 1px solid var(--app-line-soft);
+  border-radius: var(--app-radius);
+  background: #0e1217;
+}
+
+.reward-page .my-point-card strong {
+  color: var(--app-gold);
+}
+
+.reward-coupons {
+  padding: 24px;
+}
+
+.reward-coupons .section-heading-row {
+  margin-bottom: 18px;
+}
+
+/* 관리자 대시보드 */
+.admin-metrics {
+  display: grid;
+  grid-template-columns: 1.35fr repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--app-line);
+  border-bottom: 1px solid var(--app-line);
+}
+
+.admin-metrics article {
+  min-height: 166px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 22px;
+  border-right: 1px solid var(--app-line-soft);
+}
+
+.admin-metrics article:last-child {
+  border-right: none;
+}
+
+.admin-metrics article > span {
+  color: var(--app-text-faint);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.admin-metrics strong {
+  margin-top: 8px;
+  color: var(--app-text);
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  font-weight: 850;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.admin-metrics p {
+  margin: 10px 0 0;
+  color: var(--app-text-muted);
+  font-size: 0.8rem;
+}
+
+.admin-metrics .metric-wide strong {
+  color: var(--app-gold);
+}
+
+.admin-metrics .metric-running strong {
+  color: var(--app-green);
+}
+
+.admin-quick-actions,
+.admin-table-surface,
+.form-surface,
+.detail-summary,
+.occurrence-surface,
+.backfill-status,
+.result-surface {
+  padding: 24px;
+}
+
+.action-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 20px;
+  background: var(--app-line-soft);
+}
+
+.action-list a {
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px;
+  background: #0e1217;
+  transition: background-color 180ms var(--app-ease);
+}
+
+.action-list a:hover {
+  background: #161b22;
+}
+
+.action-list span {
+  color: var(--app-text);
+  font-weight: 800;
+}
+
+.action-list small {
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
+}
+
+/* 관리자 폼 */
+.admin-form {
+  display: grid;
+  gap: 22px;
+}
+
+.form-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.form-grid.two-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.input-with-unit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-with-unit > span {
+  color: var(--app-text-faint);
+}
+
+.form-section {
+  padding-top: 24px;
+  border-top: 1px solid var(--app-line-soft);
+}
+
+.coupon-item-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.coupon-item-row {
+  display: grid;
+  grid-template-columns: 72px repeat(3, minmax(120px, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--app-line-soft);
+  border-radius: var(--app-radius-control);
+  background: #0e1217;
+}
+
+.coupon-item-row > strong {
+  align-self: center;
+  color: var(--app-text);
+  font-size: 0.8rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1px solid var(--app-line-soft);
+}
+
+.inline-admin-form {
+  grid-template-columns: minmax(180px, 260px) minmax(240px, 1fr) auto;
+  align-items: end;
+  margin-top: 20px;
+}
+
+.check-field {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--app-text-muted);
+  font-size: 0.84rem;
+}
+
+.check-field input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--app-gold);
+}
+
+/* 상세와 백필 */
+.detail-status-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+  color: var(--app-text-faint);
+  font-size: 0.78rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--app-line-soft);
+}
+
+.detail-grid.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail-grid > div {
+  min-width: 0;
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--app-line-soft);
+}
+
+.detail-grid dt {
+  color: var(--app-text-faint);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.detail-grid dd {
+  margin: 5px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--app-text);
+  font-size: 0.94rem;
+  font-weight: 720;
+}
+
+.detail-grid .accent-number {
+  color: var(--app-gold);
+}
+
+.surface-empty-copy {
+  margin: 18px 0 0;
+  color: var(--app-text-muted);
+}
+
+.backfill-status progress {
+  width: 100%;
+  height: 10px;
+  margin-top: 24px;
+  border: none;
+  border-radius: 0;
+  background: var(--app-line-soft);
+  color: var(--app-gold);
+}
+
+.backfill-status progress::-webkit-progress-bar {
+  background: var(--app-line-soft);
+}
+
+.backfill-status progress::-webkit-progress-value,
+.backfill-status progress::-moz-progress-bar {
+  background: var(--app-gold);
+}
+
+.progress-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 8px 0 22px;
+  color: var(--app-text-muted);
+  font-size: 0.8rem;
+}
+
+.progress-label strong {
+  color: var(--app-gold);
+  font-size: 1.2rem;
+}
+
+@media (max-width: 1180px) {
+  .admin-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-metrics article:nth-child(2) {
+    border-right: none;
+  }
+
+  .admin-metrics article:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--app-line-soft);
+  }
+
+  .coupon-item-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .coupon-item-row > strong {
+    grid-column: 1 / -1;
+  }
+
+  .detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .toolbar,
+  .progress-label {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .compact-field select {
+    width: 100%;
+  }
+
+  .admin-metrics,
+  .form-grid.two-columns,
+  .action-list,
+  .detail-grid,
+  .detail-grid.compact,
+  .inline-admin-form {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-metrics article,
+  .admin-metrics article:nth-child(2) {
+    min-height: 132px;
+    border-right: none;
+    border-bottom: 1px solid var(--app-line-soft);
+  }
+
+  .admin-metrics article:last-child {
+    border-bottom: none;
+  }
+
+  .coupon-item-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions > button,
+  .inline-admin-form > button {
+    width: 100%;
+  }
+
+  .reward-coupons,
+  .admin-quick-actions,
+  .admin-table-surface,
+  .form-surface,
+  .detail-summary,
+  .occurrence-surface,
+  .backfill-status,
+  .result-surface {
+    padding: 18px;
+  }
+}
