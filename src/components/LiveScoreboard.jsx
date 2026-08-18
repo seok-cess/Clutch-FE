@@ -13,6 +13,8 @@ export default function LiveScoreboard({
   gamePreview = null,
   /* 재생을 바깥에서 제어하는 화면(샘플)은 GameBoard 의 자체 시계를 끈다 */
   previewTicks = true,
+  /* 축약 렌더(골드 그래프·선수 상세 생략). preview 와 분리 — 샘플도 라이브와 같은 전체 화면을 쓴다 */
+  compact = false,
   watchRewardActive = false,
   onWatchMatchChange = () => {},
 }) {
@@ -72,7 +74,7 @@ export default function LiveScoreboard({
             teams={teams ?? match.teams}
             previewData={gamePreview}
             previewTicks={previewTicks}
-            compact={preview}
+            compact={compact}
           />
         )
         : <p className="muted">밴픽/대기 중 — 게임이 시작되면 스코어보드가 표시됩니다.</p>}

@@ -1086,13 +1086,6 @@ tbody tr:hover td { color: var(--text); }
   border-bottom: 1px solid var(--bg);
 }
 
-.mode-toggle {
-  margin-left: 16px;
-  display: inline-flex;
-  gap: 8px;
-}
-
-.mode-toggle button,
 .game-btn,
 .debug-toggle {
   font-size: 0.8rem;
@@ -1107,11 +1100,9 @@ tbody tr:hover td { color: var(--text); }
   transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
 
-.mode-toggle button:hover,
 .game-btn:hover,
 .debug-toggle:hover { color: var(--text); border-color: var(--steel); }
 
-.mode-toggle button.active,
 .game-btn.active {
   color: var(--steel);
   border-color: var(--steel);
