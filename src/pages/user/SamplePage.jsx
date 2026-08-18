@@ -88,7 +88,7 @@ export default function SamplePage() {
   }), [elapsed]);
 
   return (
-    <main className="user-content page-sample">
+    <main className="user-content page-live page-sample">
       <PageHeader
         title="샘플 재생"
         description="서버 호출 없이 30분 경기를 반복 재생합니다. 시연과 화면 확인용이며 실제 경기 데이터가 아닙니다."
