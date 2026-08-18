@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { TowerIcon, InhibitorIcon, BaronIcon, DragonIcon } from './icons.jsx';
-import { championIcon, dragonName, dragonDesc } from '../ddragon.js';
+import { championIcon, dragonName, dragonDesc, dragonIcon } from '../ddragon.js';
 import IconTip from './IconTip.jsx';
 
 /**
@@ -99,6 +99,15 @@ function DragonList({ dragons, times }) {
           {dragons.map((d, i) => (
             <span key={i} className="dragon-row">
               {times?.[i] != null && <b className="dragon-time">{fmtClock(times[i])}</b>}
+              {dragonIcon(d) && (
+                <img
+                  src={dragonIcon(d)}
+                  alt=""
+                  className="dragon-ico"
+                  loading="lazy"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              )}
               <span className="dragon-name">{dragonName(d)}</span>
               <span className="dragon-desc">{dragonDesc(d)}</span>
             </span>

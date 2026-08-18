@@ -741,3 +741,82 @@
     padding: 18px;
   }
 }
+
+/* ---- 샘플 재생 (시연·테스트) ---- */
+
+.sample-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sample-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sample-btn {
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--app-text-muted);
+  background: transparent;
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius-control);
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: color 0.2s var(--app-ease), border-color 0.2s var(--app-ease),
+    background-color 0.2s var(--app-ease);
+}
+
+.sample-btn:hover { color: var(--app-text); border-color: var(--app-blue); }
+
+.sample-btn.active {
+  color: var(--app-blue);
+  border-color: var(--app-blue);
+  background: rgba(90, 169, 230, 0.08);
+}
+
+.sample-btn.primary {
+  color: var(--app-text);
+  border-color: var(--app-blue);
+  background: rgba(90, 169, 230, 0.12);
+}
+
+.sample-speeds { display: inline-flex; gap: 6px; }
+
+.sample-loop {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.86rem;
+  color: var(--app-text-muted);
+  cursor: pointer;
+}
+
+/* 시계는 폭이 흔들리면 눈에 거슬린다 — 등폭 숫자로 고정 */
+.sample-clock {
+  margin-left: auto;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.sample-seek { width: 100%; accent-color: var(--app-blue); cursor: pointer; }
+
+.sample-progress {
+  height: 2px;
+  background: var(--app-line-soft);
+  overflow: hidden;
+}
+
+.sample-progress i {
+  display: block;
+  height: 100%;
+  background: var(--app-blue);
+  transition: width 0.2s linear;
+}
+

@@ -9,6 +9,7 @@ import CouponEventEditorPage from '../pages/admin/CouponEventEditorPage.jsx';
 import CouponEventsPage from '../pages/admin/CouponEventsPage.jsx';
 import CouponsPage from '../pages/admin/CouponsPage.jsx';
 import DiagnosticsPage from '../pages/user/DiagnosticsPage.jsx';
+import SamplePage from '../pages/user/SamplePage.jsx';
 import HomePage from '../pages/user/HomePage.jsx';
 import LivePage from '../pages/user/LivePage.jsx';
 import MatchDetailPage from '../pages/user/MatchDetailPage.jsx';
@@ -36,6 +37,7 @@ export default function AppRoutes() {
         <Route path="standings" element={<StandingsPage />} />
         <Route path="rewards" element={<RewardsPage />} />
         <Route path="diagnostics" element={<DiagnosticsPage />} />
+        <Route path="sample" element={<SamplePage />} />
       </Route>
 
       <Route path="admin" element={<AdminLayout />}>

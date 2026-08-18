@@ -16,13 +16,9 @@ function formatClock(sec) {
 /**
  * 한 게임의 전체 정보(스코어보드 + 선수 상세)를 로드해 표시.
  * live=true 면 1초 폴링, 아니면 1회 조회.
- *
- * 표시 모드 (라이브 전용):
- *  - smooth(기본): 서버가 자동 계산한 재생 시점 → 1초마다 값이 전진
- *  - fresh       : 피드가 준 가장 새 프레임 → 지연은 ~10초 짧지만 10초 단위로 점프
+ * 프레임은 항상 서버가 자동 계산한 재생 시점(1초 간격)을 쓴다.
  */
-export default function GameBoard({ gameId, live, finished, statsUnavailable = false, teams, previewData = null, compact = false }) {
-  const [mode, setMode] = useState('smooth');
+export default function GameBoard({ gameId, live, finished, statsUnavailable = false, teams, previewData = null, previewTicks = true, compact = false }) {
   const [board, setBoard] = useState(null);
   const [details, setDetails] = useState(null);
   const [history, setHistory] = useState(null);
@@ -40,6 +36,10 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
       setHistory(previewData.history ?? null);
       setLoaded(true);
 
+      // 재생을 바깥에서 제어하는 화면(샘플 재생)은 시계를 직접 관리한다.
+      // 여기서도 올리면 초가 두 배로 흐르고 seek 이 되돌려진다.
+      if (!previewTicks) return undefined;
+
       const timer = window.setInterval(() => {
         setBoard((currentBoard) => ({
           ...currentBoard,
@@ -50,14 +50,12 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
       return () => window.clearInterval(timer);
     }
 
-    // smooth: lag 미지정 → 서버가 소스 요구치에 맞춰 자동 결정 / fresh: lag=0 → 최신 프레임
-    const lag = live && mode === 'fresh' ? 0 : undefined;
     const load = async () => {
       try {
         const [b, d, h] = await Promise.all([
-          fetchScoreboard(gameId, lag),
-          fetchDetails(gameId, lag),
-          fetchHistory(gameId, lag),
+          fetchScoreboard(gameId),
+          fetchDetails(gameId),
+          fetchHistory(gameId),
         ]);
         if (cancelled) return;
         if (b) setBoard(b);
@@ -75,7 +73,7 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
       return () => { cancelled = true; clearInterval(t); };
     }
     return () => { cancelled = true; };
-  }, [gameId, live, mode, previewData, statsUnavailable]);
+  }, [gameId, live, previewData, previewTicks, statsUnavailable]);
 
   if (!gameId) return null;
   if (statsUnavailable) {
@@ -110,16 +108,6 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
         <span>PATCH {board.patchVersion ?? '-'}</span>
         <span>FRAME {board.rfc460Timestamp?.slice(11, 19) ?? '-'}</span>
         {live && <span>REFRESH {POLL_MS / 1000}S</span>}
-        {live && (
-          <span className="mode-toggle">
-            <button className={mode === 'smooth' ? 'active' : ''} onClick={() => setMode('smooth')}>
-              1S STEP
-            </button>
-            <button className={mode === 'fresh' ? 'active' : ''} onClick={() => setMode('fresh')}>
-              LATEST
-            </button>
-          </span>
-        )}
       </div>
       <Scoreboard board={board} teams={teams} objectives={history?.objectives} />
 

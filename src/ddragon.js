@@ -46,6 +46,42 @@ const DRAGON_INFO = {
 export const dragonName = (key) => DRAGON_INFO[key?.toLowerCase()]?.name ?? key ?? '드래곤';
 export const dragonDesc = (key) => DRAGON_INFO[key?.toLowerCase()]?.desc ?? '';
 
+/**
+ * 용 종류별 아이콘 — public/icons 에 직접 넣은 파일을 쓴다.
+ * Data Dragon 에는 용 아이콘이 없고 소스도 이미지를 주지 않는다.
+ * 파일명이 한글이라 encodeURI 로 감싸야 경로가 깨지지 않는다.
+ */
+const DRAGON_ICON_FILE = {
+  infernal: '화염용',
+  ocean: '바다용',
+  mountain: '대지용',
+  cloud: '바람용',
+  hextech: '마공용',
+  chemtech: '화공용',
+  elder: '장로용',
+};
+
+/** @return 아이콘 경로. 모르는 키면 null — 호출부가 글자로 대체한다 */
+export function dragonIcon(key) {
+  const file = DRAGON_ICON_FILE[key?.toLowerCase()];
+  return file ? encodeURI(`/icons/${file}.png`) : null;
+}
+
+/** 용 외 오브젝트 아이콘 (타워·억제기는 아직 파일이 없어 글자로 남는다) */
+const OBJ_ICON_FILE = {
+  baron: '바론',
+};
+
+/**
+ * 오브젝트 아이콘 경로.
+ * 용은 종류(subtype)로, 나머지는 타입으로 찾는다.
+ */
+export function objectiveIcon(type, subtype) {
+  if (type === 'dragon') return dragonIcon(subtype);
+  const file = OBJ_ICON_FILE[type];
+  return file ? encodeURI(`/icons/${file}.png`) : null;
+}
+
 /** 앱 시작 시 1회 호출. 실패해도 조용히 ID 표시로 동작한다. */
 export async function initDDragon() {
   if (ready) return;

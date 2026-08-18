@@ -11,7 +11,7 @@ export default function SchedulePage() {
   return (
     <main className="user-content">
       <PageHeader
-        title="경기 일정과 결과"
+        title="경기 일정"
         description="경기를 선택하면 세트별 결과와 인게임 기록을 확인할 수 있습니다."
       />
       {error && <ErrorState>{error}</ErrorState>}
