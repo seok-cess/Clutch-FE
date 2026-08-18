@@ -15,6 +15,8 @@ const GAME_STATE_LABEL = {
  * 피드가 먼저 준 feedFinished 로 "종료"를 보여줘야 화면이 멈춘 것처럼 보이지 않는다.
  */
 function gameStateLabel(g) {
+  // 통계를 안 주는 리그는 눌러도 빈 화면이라 미리 알린다
+  if (g.statsUnavailable) return '데이터 미제공';
   if (g.state === 'inProgress' && g.feedFinished) return '종료';
   return GAME_STATE_LABEL[g.state] ?? g.state;
 }
@@ -119,6 +121,7 @@ export default function MatchGamesPanel({ match, onClose }) {
           // 피드가 끝났다고 하면 state 가 아직 inProgress 여도 폴링할 이유가 없다
           live={selectedGame.state === 'inProgress' && !selectedGame.feedFinished}
           finished={selectedGame.state === 'completed' || selectedGame.feedFinished}
+          statsUnavailable={selectedGame.statsUnavailable === true}
           teams={teams ?? match.teams}
         />
       )}
