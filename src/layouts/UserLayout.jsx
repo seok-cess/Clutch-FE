@@ -8,6 +8,7 @@ const USER_NAVIGATION = [
   { to: '/standings', label: '순위' },
   { to: '/rewards', label: '리워드' },
   { to: '/diagnostics', label: '진단' },
+  { to: '/sample', label: '샘플' },
 ];
 
 export default function UserLayout() {

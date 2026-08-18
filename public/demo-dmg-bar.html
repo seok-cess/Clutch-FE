@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>스코어보드 레이아웃 시안 — Clutch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ─── 기존 index.css 토큰 (시안이 실제 화면 톤을 갖도록) ─── */
+:root {
+  color-scheme: dark;
+  --bg: #16181C; --bg-alt: #1B1E23; --surface: #2A2D33;
+  --text: #E4E6EA; --muted: #9296A0; --muted-read: #B4B8C2;
+  --steel: #5AA9E6; --team-red: #e4514c;
+  --sans: 'IBM Plex Sans', Inter, Arial, sans-serif;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1); --dur: 200ms;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 32px 20px 64px; background: var(--bg); color: var(--text);
+  font-family: var(--sans); font-variant-numeric: tabular-nums;
+}
+.wrap { max-width: 1080px; margin: 0 auto; }   /* 1500 → 1080. 가로를 좁히는 게 이번 목적 */
+.kicker {
+  font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 6px;
+}
+h3 { font-size: 1.05rem; font-weight: 600; margin: 0 0 18px; }
+.note {
+  font-size: .78rem; color: var(--muted); line-height: 1.7;
+  border-left: 2px solid var(--surface); padding-left: 12px; margin: 0 0 24px;
+}
+
+/* ── 세트 탭 ── */
+.set-tabs { display: flex; border: 1px solid var(--surface); border-radius: 3px; overflow: hidden; margin-bottom: 14px; }
+.set-tab {
+  flex: 1; font: inherit; font-size: .86rem; color: var(--muted);
+  background: none; border: 0; border-bottom: 2px solid transparent;
+  padding: 10px; cursor: pointer; transition: color var(--dur) var(--ease);
+}
+.set-tab:hover { color: var(--text); }
+.set-tab.active { color: var(--text); font-weight: 600; border-bottom-color: var(--steel); background: var(--bg-alt); }
+
+/* ── 세트 헤더: 승패 · 킬 · 시간 ── */
+.set-head {
+  display: grid; grid-template-columns: 1fr 62px 82px 62px 1fr;
+  align-items: center; gap: 10px;
+  border: 1px solid var(--surface); border-radius: 3px;
+  background: var(--bg-alt); padding: 14px 18px; margin-bottom: 14px;
+}
+.sh-team { display: flex; align-items: center; gap: 9px; font-size: 1.02rem; font-weight: 600; }
+.sh-team.right { justify-content: flex-end; }
+.sh-tag { font-size: .66rem; letter-spacing: .06em; padding: 1px 6px; border-radius: 2px; }
+.sh-tag.win { color: var(--steel); border: 1px solid var(--steel); }
+.sh-tag.loss { color: var(--muted); border: 1px solid var(--surface); }
+.sh-kill { font-size: 1.55rem; font-weight: 600; text-align: center; }
+.sh-clock { text-align: center; }
+.sh-clock .lbl { font-size: .64rem; color: var(--muted); display: block; }
+.sh-clock .val { font-size: .92rem; color: var(--muted-read); }
+
+/* ── 2단 배치: 딜량 | 게임 스탯 ──
+   가로 표를 늘리는 대신 블록을 나란히 둔다. 좁은 화면에서는 세로로 쌓인다. */
+.duo { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; }
+@media (max-width: 900px) { .duo { grid-template-columns: 1fr; } }
+
+.card {
+  border: 1px solid var(--surface); border-radius: 3px;
+  background: var(--bg-alt); padding: 16px;
+}
+.card > h4 {
+  font-size: .74rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted); font-weight: 500; text-align: center;
+  margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--surface);
+}
+
+/* ── 가한 피해량: 좌우 마주보는 막대 ──
+   선수 표에 열을 추가하는 대신 별도 블록으로 뺐다.
+   같은 포지션끼리 한 줄에 놓여 매치업 비교가 바로 된다. */
+.dmg-row {
+  display: grid; grid-template-columns: 30px 1fr 1fr 30px;
+  align-items: center; gap: 9px; padding: 5px 0;
+}
+.dmg-row + .dmg-row { border-top: 1px solid rgba(42,45,51,.4); }
+.champ { width: 30px; height: 30px; border-radius: 2px; border: 1px solid var(--surface); }
+.dmg-side { min-width: 0; }
+.dmg-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.dmg-side.r .dmg-top { flex-direction: row-reverse; }
+.dmg-name { font-size: .84rem; color: var(--muted-read); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dmg-val { font-size: .82rem; font-weight: 600; flex: none; }
+.dmg-side.l .dmg-val { color: var(--steel); }
+.dmg-side.r .dmg-val { color: var(--team-red); }
+.bar { height: 5px; background: var(--surface); border-radius: 2px; overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 2px; }
+.dmg-side.l .bar i { background: var(--steel); }
+.dmg-side.r .bar i { background: var(--team-red); margin-left: auto; }
+
+/* ── 게임 스탯: 가운데 라벨 대칭 ── */
+.stat {
+  display: grid; grid-template-columns: 1fr 56px 1fr;
+  align-items: center; gap: 8px; padding: 7px 0; font-size: .9rem;
+}
+.stat + .stat { border-top: 1px solid rgba(42,45,51,.4); }
+.stat .lbl { text-align: center; font-size: .68rem; color: var(--muted); }
+.stat .l { text-align: right; }
+.stat .r { text-align: left; }
+.stat .lead { color: var(--text); font-weight: 600; }
+.stat .dim { color: var(--muted); }
+.chips { display: inline-flex; gap: 3px; flex-wrap: wrap; }
+.chip {
+  font-size: .62rem; padding: 1px 5px; border-radius: 2px;
+  border: 1px solid var(--surface); color: var(--muted-read);
+}
+.chip.dragon { border-color: rgba(90,169,230,.5); }
+
+/* ── 선수 표 (LV·KDA·CS·GOLD) — DMG 열 없이 기존 그대로 ── */
+.players { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+@media (max-width: 900px) { .players { grid-template-columns: 1fr; } }
+.player-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: .88rem; }
+.player-table th {
+  font-size: .64rem; letter-spacing: .08em; font-weight: 500; text-transform: uppercase;
+  padding: 6px 8px; border-bottom: 1px solid var(--surface);
+}
+.player-table.blue th { color: var(--steel); }
+.player-table.red th { color: var(--team-red); }
+.player-table td { padding: 7px 8px; border-bottom: 1px solid rgba(42,45,51,.4); }
+.player-table .col-player { width: 42%; }
+.player-table.blue .col-player { text-align: left; }
+.player-table.red .col-player { text-align: right; }
+.player-table .col-level, .player-table .col-cs { width: 12%; text-align: center; }
+.player-table .col-kda { width: 18%; text-align: center; }
+.player-table .col-gold { width: 16%; text-align: center; }
+.pc { display: inline-flex; align-items: center; gap: 7px; }
+.player-table.red .pc { flex-direction: row-reverse; }
+.pc img { width: 22px; height: 22px; border-radius: 2px; border: 1px solid var(--surface); }
+.pc span { color: var(--muted-read); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="kicker">시안 · 실제 적재 데이터 (2026-08-06 T1 vs DK)</span>
+  <h3>인게임 스코어보드 — 세로 배치</h3>
+
+  <p class="note">
+    가로로 넓어지는 문제를 <b>블록을 나눠</b> 해결했다. 표에 열을 계속 붙이는 대신
+    <b>가한 피해량</b>과 <b>게임 스탯</b>을 좌우 카드로 분리하고, 선수 표는 아래로 내렸다.<br>
+    최대 폭 1080px — 이전 시안(1500px)보다 좁은데 정보량은 더 많다.
+  </p>
+
+  <div class="set-tabs">
+    <button class="set-tab active">1세트</button>
+    <button class="set-tab">2세트</button>
+  </div>
+
+  <div class="set-head">
+    <div class="sh-team"><span class="sh-tag win">WIN</span><b class="blue-text" style="color:var(--steel)">T1</b></div>
+    <div class="sh-kill" style="color:var(--steel)">20</div>
+    <div class="sh-clock"><span class="lbl">게임 시간</span><span class="val">28:24</span></div>
+    <div class="sh-kill" style="color:var(--team-red)">4</div>
+    <div class="sh-team right"><b style="color:var(--team-red)">DK</b><span class="sh-tag loss">LOSS</span></div>
+  </div>
+
+  <div class="duo">
+    <!-- 가한 피해량 -->
+    <div class="card">
+      <h4>가한 피해량</h4>
+      <div id="dmg"></div>
+      <p style="font-size:.72rem;color:var(--muted);margin:12px 0 0;text-align:center">
+        피드가 딜량 절대값을 주지 않아 <b>지분(%)</b>으로 표시한다
+      </p>
+    </div>
+
+    <!-- 게임 스탯 -->
+    <div class="card">
+      <h4>게임 스탯</h4>
+      <div class="stat"><span class="l lead">20 / 4 / 34</span><span class="lbl">KDA</span><span class="r dim">4 / 20 / 7</span></div>
+      <div class="stat"><span class="l lead">61.3K</span><span class="lbl">골드</span><span class="r dim">51.1K</span></div>
+      <div class="stat"><span class="l lead">9</span><span class="lbl">타워</span><span class="r dim">2</span></div>
+      <div class="stat"><span class="l lead">1</span><span class="lbl">억제기</span><span class="r dim">0</span></div>
+      <div class="stat"><span class="l lead">1</span><span class="lbl">바론</span><span class="r dim">0</span></div>
+      <div class="stat">
+        <span class="l"><span class="chips"><span class="chip dragon">불</span><span class="chip dragon">마법</span><span class="chip dragon">마법</span></span></span>
+        <span class="lbl">드래곤</span>
+        <span class="r"><span class="chips"><span class="chip dragon">화학</span></span></span>
+      </div>
+      <div class="stat"><span class="l lead">+10,146</span><span class="lbl">골드차</span><span class="r dim">—</span></div>
+    </div>
+  </div>
+
+  <!-- 선수 표 — 열 추가 없이 기존 그대로 -->
+  <div class="players">
+    <table class="player-table blue"><thead id="hB"></thead><tbody id="bB"></tbody></table>
+    <table class="player-table red"><thead id="hR"></thead><tbody id="bR"></tbody></table>
+  </div>
+</div>
+
+<script>
+// DB 적재분 그대로 (game_player_stat, game_id=15)
+const P = [
+  {id:1, name:"Doran",     champ:"Ambessa",    lv:16, k:5,d:0,a:5,  cs:264, gold:12986, dmg:0.2976},
+  {id:2, name:"Oner",      champ:"Vi",         lv:15, k:2,d:1,a:10, cs:198, gold:11785, dmg:0.1368},
+  {id:3, name:"Faker",     champ:"Cassiopeia", lv:16, k:6,d:1,a:3,  cs:287, gold:12411, dmg:0.2635},
+  {id:4, name:"Peyz",      champ:"Jhin",       lv:16, k:7,d:1,a:5,  cs:334, gold:16145, dmg:0.2306},
+  {id:5, name:"Keria",     champ:"Shen",       lv:13, k:0,d:1,a:11, cs:32,  gold:7967,  dmg:0.0715},
+  {id:6, name:"Siwoo",     champ:"Aatrox",     lv:15, k:1,d:2,a:2,  cs:269, gold:10576, dmg:0.2781},
+  {id:7, name:"Lucid",     champ:"XinZhao",    lv:13, k:1,d:5,a:1,  cs:217, gold:10670, dmg:0.1687},
+  {id:8, name:"ShowMaker", champ:"Anivia",     lv:14, k:1,d:5,a:1,  cs:245, gold:10165, dmg:0.2027},
+  {id:9, name:"Smash",     champ:"Ezreal",     lv:15, k:1,d:3,a:0,  cs:286, gold:12873, dmg:0.2584},
+  {id:10,name:"Career",    champ:"Bard",       lv:12, k:0,d:5,a:3,  cs:37,  gold:6865,  dmg:0.0921},
+];
+
+const CH = "https://ddragon.leagueoflegends.com/cdn/15.13.1/img/champion/";
+const hide = 'onerror="this.style.visibility=\'hidden\'"';
+const blue = P.filter(p => p.id <= 5), red = P.filter(p => p.id > 5);
+const maxDmg = Math.max(...P.map(p => p.dmg));
+
+// 딜량 — 같은 포지션끼리 한 줄에 마주보게
+document.getElementById("dmg").innerHTML = blue.map((b, i) => {
+  const r = red[i];
+  const side = (p, cls) => `
+    <div class="dmg-side ${cls}">
+      <div class="dmg-top">
+        <span class="dmg-name">${p.name}</span>
+        <span class="dmg-val">${(p.dmg * 100).toFixed(1)}%</span>
+      </div>
+      <div class="bar"><i style="width:${(p.dmg / maxDmg * 100).toFixed(1)}%"></i></div>
+    </div>`;
+  return `<div class="dmg-row">
+    <img class="champ" src="${CH}${b.champ}.png" alt="${b.champ}" ${hide}>
+    ${side(b, "l")}${side(r, "r")}
+    <img class="champ" src="${CH}${r.champ}.png" alt="${r.champ}" ${hide}>
+  </div>`;
+}).join("");
+
+// 선수 표 — 레드팀은 열 순서를 뒤집어 가운데 대칭 유지 (기존 규칙)
+function table(headId, bodyId, rows, side) {
+  const cols = [
+    { key: "player", label: "PLAYER", cell: p =>
+      `<span class="pc"><img src="${CH}${p.champ}.png" alt="" ${hide}><span>${p.name}</span></span>` },
+    { key: "level", label: "LV",    cell: p => p.lv },
+    { key: "kda",   label: "K/D/A", cell: p => `${p.k}/${p.d}/${p.a}` },
+    { key: "cs",    label: "CS",    cell: p => p.cs },
+    { key: "gold",  label: "GOLD",  cell: p => p.gold.toLocaleString() },
+  ];
+  const o = side === "red" ? [...cols].reverse() : cols;
+  document.getElementById(headId).innerHTML =
+    `<tr>${o.map(c => `<th class="col-${c.key}">${c.label}</th>`).join("")}</tr>`;
+  document.getElementById(bodyId).innerHTML = rows.map(p =>
+    `<tr>${o.map(c => `<td class="col-${c.key}">${c.cell(p)}</td>`).join("")}</tr>`).join("");
+}
+table("hB", "bB", blue, "blue");
+table("hR", "bR", red, "red");
+</script>
+</body>
+</html>

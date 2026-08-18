@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { dragonName, dragonDesc } from '../ddragon.js';
+import { dragonName, dragonDesc, objectiveIcon } from '../ddragon.js';
 
 /**
  * 좌표계 크기.
@@ -9,7 +9,9 @@ import { dragonName, dragonDesc } from '../ddragon.js';
  */
 const W = 1500;
 const H = 270;
-const PAD = { top: 16, right: 16, bottom: 52, left: 56 };  // 하단에 오브젝트 마커 자리
+// 하단 여백 = 오브젝트 마커 한 줄 + 시간 라벨. 마커는 HTML 이라
+// viewBox 단위가 아닌 실제 px 로 얹히므로, 여기서는 자리만 비워 둔다.
+const PAD = { top: 16, right: 16, bottom: 66, left: 56 };
 
 function fmtClock(sec) {
   const m = Math.floor(sec / 60);
@@ -100,6 +102,9 @@ export default function GoldChart({ points, objectives }) {
 
   return (
     <div className="gold-chart">
+      {/* 마커·툴팁은 이 박스 기준으로 얹는다. 범례까지 포함한 바깥 div 를 기준으로
+          삼으면 bottom 이 범례 아래에서 계산돼 그래프 밖으로 밀린다. */}
+      <div className="chart-box">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
@@ -172,10 +177,20 @@ export default function GoldChart({ points, objectives }) {
             onMouseLeave={() => setObjHover(null)}
             onFocus={() => setObjHover(o)}
             onBlur={() => setObjHover(null)}
-            aria-label={`${fmtClock(o.gameTimeSeconds)} ${
+            aria-label={`${fmtClock(o.gameTimeSeconds)} ${o.side === 'blue' ? '블루' : '레드'} ${
               o.type === 'dragon' ? dragonName(o.subtype) : OBJ_MARK[o.type].label}`}
           >
-            {OBJ_MARK[o.type].mark}
+            {objectiveIcon(o.type, o.subtype)
+              ? (
+                <img
+                  src={objectiveIcon(o.type, o.subtype)}
+                  alt=""
+                  className="obj-ico"
+                  loading="lazy"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              )
+              : OBJ_MARK[o.type].mark}
           </button>
         ))}
       </div>
@@ -228,6 +243,8 @@ export default function GoldChart({ points, objectives }) {
           </div>
         </div>
       )}
+
+      </div>
 
       <div className="chart-legend">
         <span className="blue-text">■ 블루 우세</span>

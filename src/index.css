@@ -1607,6 +1607,10 @@ tbody tr:hover td { color: var(--text); }
 /* 골드차 추이 그래프 */
 .gold-chart { position: relative; }
 
+/* 그래프 박스 — 마커·툴팁의 기준. 범례는 이 박스 밖이라
+   bottom 계산에 끼어들지 않는다. */
+.chart-box { position: relative; }
+
 /* 헤더 우측 상대 전적 (간단 표기) */
 .h2h-inline {
   margin-left: auto;
@@ -1673,45 +1677,83 @@ tbody tr:hover td { color: var(--text); }
 .dragon-name { color: var(--muted-read); }
 .dragon-desc { color: var(--muted); font-size: 0.75rem; }
 
+/* 용 종류 아이콘 — 행이 baseline 정렬이라 이미지는 따로 맞춘다 */
+.dragon-ico {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  align-self: center;
+  flex: none;
+}
+
+/* 그래프 마커 안의 아이콘 — 글자(D/B) 자리를 대신한다 */
+.obj-ico {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+  display: block;
+}
+
 /* 그래프 오브젝트 마커 — SVG 밖 HTML (가로 확대의 영향을 받지 않게) */
+/* 오브젝트 마커 — 그래프 박스 안, 시간 라벨 바로 위 한 줄.
+   SVG 내부가 아니라 그 위에 얹는 HTML 이다. preserveAspectRatio="none" 로
+   viewBox 세로가 눌리므로, SVG 좌표를 쓰면 위치가 어긋난다.
+   대신 박스 하단에서 실제 px 로 띄운다 (SVG 는 PAD.bottom 으로 자리만 비워 둠).
+   진영은 색으로 구분하므로 한 줄에 모은다. */
 .obj-marks {
   position: absolute;
   left: 0;
   right: 0;
-  /* 그래프(높이 270px 중 하단 여백 52px) 안쪽, 시간 라벨 위 */
-  bottom: 44px;
-  height: 0;
+  bottom: 26px;   /* 시간 라벨(약 20px) 위 */
+  height: 22px;
   pointer-events: none;
 }
 
+/* 오브젝트 마커 — 팀 구분은 색 테두리가 아니라 위치(위/아래 줄)와
+   좌측 진영 라벨로 한다. 원형 테두리는 아이콘 색과 섞여 읽기 어려웠다. */
 .obj-mark {
   position: absolute;
+  top: 0;          /* 컨테이너(.obj-marks) 높이가 곧 한 줄 높이다 */
   transform: translateX(-50%);
   pointer-events: auto;
-  width: 20px;
-  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   padding: 0;
-  border-radius: 50%;
-  background: var(--bg);
-  font-size: 0.68rem;
-  font-weight: 600;
+  border: none;
+  border-radius: 3px;
+  background: var(--bg-alt);
+  font-size: 0.7rem;
+  font-weight: 700;
   line-height: 1;
   cursor: default;
   transition: background-color var(--dur) var(--ease);
 }
 
-/* 블루는 위 줄, 레드는 아래 줄 — 같은 시각에 겹치지 않게 */
-.obj-mark.blue {
-  bottom: 22px;
-  border: 1px solid var(--steel);
-  color: var(--steel);
+/* 어느 진영인지는 마커 아래 짧은 막대로 — 색이 아이콘을 덮지 않는다 */
+.obj-mark::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  bottom: -4px;
+  height: 2px;
+  border-radius: 1px;
 }
 
-.obj-mark.red {
-  bottom: 0;
-  border: 1px solid var(--team-red);
-  color: var(--team-red);
-}
+/* 블루는 위 줄, 레드는 아래 줄 — 같은 시각에 겹치지 않게 */
+.obj-mark.blue { color: var(--steel); }
+.obj-mark.blue::after { background: var(--steel); }
+
+.obj-mark.red { color: var(--team-red); }
+.obj-mark.red::after { background: var(--team-red); }
+
+.obj-mark:hover { background: var(--surface); }
+
+/* 그래프 좌측 진영 라벨 — 위/아래 줄이 각각 어느 팀인지 못 박는다 */
+/* 한 줄로 모았으므로 좌측 진영 라벨은 쓰지 않는다 — 색과 하단 막대로 구분한다 */
 
 .obj-mark:hover { background: var(--bg-alt); }
 

@@ -11,6 +11,8 @@ export default function LiveScoreboard({
   userId,
   preview = false,
   gamePreview = null,
+  /* 재생을 바깥에서 제어하는 화면(샘플)은 GameBoard 의 자체 시계를 끈다 */
+  previewTicks = true,
   watchRewardActive = false,
   onWatchMatchChange = () => {},
 }) {
@@ -69,6 +71,7 @@ export default function LiveScoreboard({
             statsUnavailable={currentGame?.statsUnavailable === true}
             teams={teams ?? match.teams}
             previewData={gamePreview}
+            previewTicks={previewTicks}
             compact={preview}
           />
         )

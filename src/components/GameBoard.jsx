@@ -21,7 +21,7 @@ function formatClock(sec) {
  *  - smooth(기본): 서버가 자동 계산한 재생 시점 → 1초마다 값이 전진
  *  - fresh       : 피드가 준 가장 새 프레임 → 지연은 ~10초 짧지만 10초 단위로 점프
  */
-export default function GameBoard({ gameId, live, finished, statsUnavailable = false, teams, previewData = null, compact = false }) {
+export default function GameBoard({ gameId, live, finished, statsUnavailable = false, teams, previewData = null, previewTicks = true, compact = false }) {
   const [mode, setMode] = useState('smooth');
   const [board, setBoard] = useState(null);
   const [details, setDetails] = useState(null);
@@ -39,6 +39,10 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
       setDetails(previewData.details ?? null);
       setHistory(previewData.history ?? null);
       setLoaded(true);
+
+      // 재생을 바깥에서 제어하는 화면(샘플 재생)은 시계를 직접 관리한다.
+      // 여기서도 올리면 초가 두 배로 흐르고 seek 이 되돌려진다.
+      if (!previewTicks) return undefined;
 
       const timer = window.setInterval(() => {
         setBoard((currentBoard) => ({
@@ -75,7 +79,7 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
       return () => { cancelled = true; clearInterval(t); };
     }
     return () => { cancelled = true; };
-  }, [gameId, live, mode, previewData, statsUnavailable]);
+  }, [gameId, live, mode, previewData, previewTicks, statsUnavailable]);
 
   if (!gameId) return null;
   if (statsUnavailable) {
