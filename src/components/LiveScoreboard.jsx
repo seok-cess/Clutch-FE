@@ -34,10 +34,12 @@ export default function LiveScoreboard({
   // 진행중인 세트가 피드 기준으로 끝났으면 소스 state(약 5분 지연)를 기다리지 않는다
   const setEnded = currentGame?.feedFinished === true;
 
-  // 세트 스코어 — gameWins 로 확정된 세트만 센다 (종료 후 약 5분 뒤 반영)
-  const wonBy = (team) => match.games.filter((g) => g.winnerTeamId === team?.id).length;
-  const scoreA = wonBy(teamA);
-  const scoreB = wonBy(teamB);
+  // 세트 스코어 — 소스가 준 gameWins 를 그대로 쓴다.
+  // games[].winnerTeamId 를 세면 서버가 매치 도중 켜졌을 때(재시작·배포) 그전 세트를
+  // 관측하지 못해 null 로 남아 실제 2:0 인 매치가 0:0 으로 보인다.
+  // winnerTeamId 는 세트별 승자 표기와 정산에만 쓴다.
+  const scoreA = teamA?.gameWins ?? 0;
+  const scoreB = teamB?.gameWins ?? 0;
 
   return (
     <section className="panel live-panel cropmarks">
@@ -64,6 +66,7 @@ export default function LiveScoreboard({
             gameId={gameId}
             live={!setEnded}
             finished={setEnded}
+            statsUnavailable={currentGame?.statsUnavailable === true}
             teams={teams ?? match.teams}
             previewData={gamePreview}
             compact={preview}

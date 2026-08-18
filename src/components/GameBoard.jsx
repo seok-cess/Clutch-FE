@@ -21,7 +21,7 @@ function formatClock(sec) {
  *  - smooth(기본): 서버가 자동 계산한 재생 시점 → 1초마다 값이 전진
  *  - fresh       : 피드가 준 가장 새 프레임 → 지연은 ~10초 짧지만 10초 단위로 점프
  */
-export default function GameBoard({ gameId, live, finished, teams, previewData = null, compact = false }) {
+export default function GameBoard({ gameId, live, finished, statsUnavailable = false, teams, previewData = null, compact = false }) {
   const [mode, setMode] = useState('smooth');
   const [board, setBoard] = useState(null);
   const [details, setDetails] = useState(null);
@@ -29,7 +29,8 @@ export default function GameBoard({ gameId, live, finished, teams, previewData =
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!gameId) return;
+    // 소스가 통계를 주지 않는 세트는 호출해봐야 계속 404 다 — 아예 요청하지 않는다
+    if (!gameId || statsUnavailable) return;
     let cancelled = false;
     setLoaded(false);
 
@@ -74,9 +75,16 @@ export default function GameBoard({ gameId, live, finished, teams, previewData =
       return () => { cancelled = true; clearInterval(t); };
     }
     return () => { cancelled = true; };
-  }, [gameId, live, mode, previewData]);
+  }, [gameId, live, mode, previewData, statsUnavailable]);
 
   if (!gameId) return null;
+  if (statsUnavailable) {
+    return (
+      <p className="muted">
+        라이브 데이터 미제공 경기입니다 — 소스가 이 리그의 인게임 통계를 제공하지 않습니다.
+      </p>
+    );
+  }
   if (!board) {
     return (
       <p className="muted">
