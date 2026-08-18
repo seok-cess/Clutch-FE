@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useParams } from 'react-router';
-import { deleteCouponEvent, fetchCouponEvent } from '../../api/admin.js';
+import {
+  deleteCouponEvent,
+  fetchCouponEvent,
+  manualOpenCouponEvent,
+} from '../../api/admin.js';
 import { ErrorState, LoadingState } from '../../shared/components/AsyncState.jsx';
 import PageHeader from '../../shared/components/PageHeader.jsx';
 import StatusBadge from '../../shared/components/StatusBadge.jsx';
@@ -17,7 +21,9 @@ export default function CouponEventDetailPage() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [opening, setOpening] = useState(false);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,6 +47,33 @@ export default function CouponEventDetailPage() {
     }
   };
 
+  const manualOpen = async () => {
+    if (!window.confirm('이 쿠폰 이벤트를 테스트용으로 오픈할까요?')) return;
+
+    setOpening(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await manualOpenCouponEvent(couponEventId);
+      const refreshedEvent = await fetchCouponEvent(couponEventId);
+      setEvent(refreshedEvent);
+      setNotice('테스트 회차가 열렸습니다. 최근 회차 정보를 갱신했습니다.');
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setOpening(false);
+    }
+  };
+
+  const isOpen = event?.eventStatus === 'OPEN';
+  const canManualOpen = event?.eventStatus === 'READY'
+    && Number(event?.remainingQuantity) > 0;
+  const manualOpenLabel = opening
+    ? '오픈 중'
+    : isOpen
+      ? '테스트 진행 중'
+      : '쿠폰 발급 테스트';
+
   return (
     <div className="admin-page detail-page">
       <PageHeader
@@ -48,14 +81,23 @@ export default function CouponEventDetailPage() {
         description="이벤트 설정, 발급 수량과 최근 회차 상태를 확인합니다."
         actions={event && (
           <>
+            <button
+              className="button-primary"
+              type="button"
+              onClick={manualOpen}
+              disabled={opening || deleting || !canManualOpen}
+            >
+              {manualOpenLabel}
+            </button>
             <NavLink className="button-secondary" to={`/admin/coupon-events/${couponEventId}/edit`}>수정</NavLink>
-            <button className="button-danger" type="button" onClick={remove} disabled={deleting}>
+            <button className="button-danger" type="button" onClick={remove} disabled={deleting || opening}>
               {deleting ? '삭제 중' : '삭제'}
             </button>
           </>
         )}
       />
       {error && <ErrorState>{error}</ErrorState>}
+      {notice && <div className="operation-notice" role="status">{notice}</div>}
       {loading ? <LoadingState /> : event && (
         <>
           <section className="detail-summary data-surface">
