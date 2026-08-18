@@ -26,6 +26,14 @@ export const deleteCouponEvent = (couponEventId) => requestJson(
   { method: 'DELETE' },
 );
 
+export const manualOpenCouponEvent = (couponEventId) => requestJson(
+  `/api/v1/admin/coupon-events/${encodeURIComponent(couponEventId)}/occurrences/manual-open`,
+  {
+    method: 'POST',
+    fallbackMessage: '쿠폰 이벤트를 테스트용으로 오픈하지 못했습니다.',
+  },
+);
+
 export const cancelCoupon = (adminId, couponId, reason) => requestAsAdmin(
   `/api/admin/coupons/${encodeURIComponent(couponId)}/cancel`,
   adminId,
