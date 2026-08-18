@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAppData } from '../../app/AppDataProvider.jsx';
 import LiveScoreboard from '../../components/LiveScoreboard.jsx';
+import ActiveCouponClaim from '../../features/coupon/ActiveCouponClaim.jsx';
 import PageHeader from '../../shared/components/PageHeader.jsx';
 import {
   SAMPLE_DURATION,
@@ -29,6 +31,8 @@ function clock(sec) {
  * 끝까지 가면 처음으로 돌아가 계속 반복한다.
  */
 export default function SamplePage() {
+  // 쿠폰 발급은 서버를 그대로 쓴다 — 활성 이벤트 조회가 경기와 무관해 샘플에서도 잡힌다
+  const { userId } = useAppData();
   const [elapsed, setElapsed] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(10);
@@ -152,11 +156,13 @@ export default function SamplePage() {
         <div className="sample-progress"><i style={{ width: `${progress}%` }} /></div>
       </section>
 
+      <ActiveCouponClaim userId={userId} />
+
       {/* 라이브 페이지와 같은 구성 — 스코어보드 + 시청 포인트 + 배팅.
           LiveScoreboard 의 preview 모드가 서버 호출 없이 동작한다. */}
       <LiveScoreboard
         match={sampleMatch}
-        userId={null}
+        userId={userId}
         preview
         gamePreview={preview}
         previewTicks={false}
