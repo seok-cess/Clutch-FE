@@ -30,7 +30,12 @@ export async function requestJson(url, options = {}) {
       ?? payload?.error
       ?? fallbackMessage
       ?? `${url} 요청에 실패했습니다. (${response.status})`;
-    throw new Error(message);
+    const requestError = new Error(message);
+    requestError.name = 'ApiError';
+    requestError.status = response.status;
+    requestError.code = payload?.code;
+    requestError.payload = payload;
+    throw requestError;
   }
   return payload;
 }
