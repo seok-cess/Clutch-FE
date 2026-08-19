@@ -187,8 +187,12 @@ export default function CouponEventForm({ initialValue, onSubmit, submitting, su
         />
         <datalist id="trigger-type-options">
           <option value="FIRST_BARON_KILL" />
+          {/* CLUTCH-216: 백엔드에서 날짜와 당일 순번을 붙여 저장하는 수동 테스트 트리거 */}
+          <option value="MANUAL_TEST" />
         </datalist>
-        <small>백엔드 이벤트 감지기의 triggerType 값과 동일해야 합니다.</small>
+        <small>
+          자동 감지 트리거를 선택하거나, 수동 테스트는 MANUAL_TEST를 선택해 주세요.
+        </small>
       </label>
 
       <section className="form-section">
