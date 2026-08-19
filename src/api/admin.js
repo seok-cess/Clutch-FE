@@ -40,6 +40,33 @@ export const cancelCoupon = (adminId, couponId, reason) => requestAsAdmin(
   { method: 'POST', body: { reason } },
 );
 
+export function fetchCouponTypes(status) {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  const query = params.toString();
+  return requestJson(`/api/v1/admin/coupon-types${query ? `?${query}` : ''}`);
+}
+
+export const createCouponType = (payload) => requestJson('/api/v1/admin/coupon-types', {
+  method: 'POST',
+  body: payload,
+});
+
+export const updateCouponType = (couponTypeId, payload) => requestJson(
+  `/api/v1/admin/coupon-types/${encodeURIComponent(couponTypeId)}`,
+  { method: 'PATCH', body: payload },
+);
+
+export const changeCouponTypeStatus = (couponTypeId, status) => requestJson(
+  `/api/v1/admin/coupon-types/${encodeURIComponent(couponTypeId)}/status`,
+  { method: 'PATCH', body: { status } },
+);
+
+export const deleteCouponType = (couponTypeId) => requestJson(
+  `/api/v1/admin/coupon-types/${encodeURIComponent(couponTypeId)}`,
+  { method: 'DELETE' },
+);
+
 export const fetchBackfillStatus = () => requestJson('/api/admin/backfill/status');
 
 export function startBackfill({ limit = 1000, all = false } = {}) {

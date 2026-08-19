@@ -7,6 +7,7 @@ const ADMIN_NAVIGATION = [
   { to: '/admin', label: '운영 요약', end: true },
   { to: '/admin/coupon-events', label: '쿠폰 이벤트' },
   { to: '/admin/coupons', label: '발급 쿠폰' },
+  { to: '/admin/coupon-types', label: '쿠폰 종류' },
   { to: '/admin/backfill', label: '데이터 백필' },
 ];
 
