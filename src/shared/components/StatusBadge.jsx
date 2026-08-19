@@ -9,6 +9,8 @@ const STATUS_LABEL = {
   WON: '적중',
   LOST: '미적중',
   REFUNDED: '환불',
+  ACTIVE: '활성',
+  INACTIVE: '비활성',
 };
 
 export default function StatusBadge({ status, label }) {

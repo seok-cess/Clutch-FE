@@ -593,6 +593,69 @@
   font-weight: 700;
 }
 
+/* 관리자 쿠폰 종류 */
+.status-active {
+  border-color: rgba(85, 201, 138, 0.42);
+  color: #72dfa5;
+  background: rgba(85, 201, 138, 0.07);
+}
+
+.status-inactive {
+  color: var(--app-text-faint);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.coupon-type-form-surface {
+  border-color: rgba(217, 164, 65, 0.28);
+}
+
+.coupon-type-form {
+  grid-template-columns: minmax(260px, 1.6fr) minmax(170px, 0.7fr) minmax(200px, 0.8fr) auto;
+  align-items: end;
+  margin-top: 20px;
+}
+
+.coupon-type-form-actions,
+.table-action-group {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.coupon-type-name {
+  color: var(--app-text);
+  font-weight: 800;
+}
+
+.coupon-benefit {
+  display: block;
+  color: var(--app-gold);
+  font-size: 0.96rem;
+  font-weight: 850;
+}
+
+.coupon-type-table td small {
+  display: block;
+  margin-top: 3px;
+  color: var(--app-text-faint);
+  font-size: 0.68rem;
+}
+
+.usage-label {
+  color: var(--app-text-faint);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.usage-label.used {
+  color: var(--app-text-muted);
+}
+
+.coupon-type-table .table-action {
+  min-width: 248px;
+}
+
 .backfill-status progress {
   width: 100%;
   height: 10px;
@@ -651,6 +714,14 @@
   .detail-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .coupon-type-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .coupon-type-name-field {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 760px) {
@@ -671,6 +742,22 @@
   .detail-grid.compact,
   .inline-admin-form {
     grid-template-columns: 1fr;
+  }
+
+  .coupon-type-form {
+    grid-template-columns: 1fr;
+  }
+
+  .coupon-type-name-field {
+    grid-column: auto;
+  }
+
+  .coupon-type-form-actions {
+    justify-content: stretch;
+  }
+
+  .coupon-type-form-actions > button {
+    flex: 1;
   }
 
   .admin-metrics article,
