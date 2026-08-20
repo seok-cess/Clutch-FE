@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router';
 import {
   fetchChampionStats,
@@ -46,6 +46,15 @@ export function AppDataProvider({ children }) {
     window.localStorage.setItem('clutch-user-id', userId);
   }, [userId]);
 
+  const refreshLive = useCallback(async () => {
+    try {
+      const nextLive = await fetchLive();
+      if (nextLive) setLive(nextLive);
+    } catch {
+      // 라이브 조회는 다음 폴링에서 자동 복구한다.
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     const loadMeta = async () => {
@@ -77,22 +86,10 @@ export function AppDataProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    const loadLive = async () => {
-      try {
-        const nextLive = await fetchLive();
-        if (!cancelled && nextLive) setLive(nextLive);
-      } catch {
-        // 라이브 조회는 다음 폴링에서 자동 복구한다.
-      }
-    };
-    loadLive();
-    const timer = window.setInterval(loadLive, LIVE_POLL_MS);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, []);
+    refreshLive();
+    const timer = window.setInterval(refreshLive, LIVE_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [refreshLive]);
 
   const watchableMatchIds = useMemo(() => live.matches
     .filter((match) => {
@@ -146,6 +143,7 @@ export function AppDataProvider({ children }) {
     live,
     scoreboard,
     error,
+    refreshLive,
     userId,
     setUserId,
     activeWatchMatchId,
@@ -159,6 +157,7 @@ export function AppDataProvider({ children }) {
     live,
     scoreboard,
     error,
+    refreshLive,
     userId,
     activeWatchMatchId,
   ]);
