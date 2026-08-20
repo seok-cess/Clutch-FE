@@ -1,6 +1,7 @@
 import { useAppData } from '../../app/AppDataProvider.jsx';
 import LiveScoreboard from '../../components/LiveScoreboard.jsx';
 import ActiveCouponClaim from '../../features/coupon/ActiveCouponClaim.jsx';
+import ReplayStartControl from '../../features/live/ReplayStartControl.jsx';
 import { EmptyState, ErrorState } from '../../shared/components/AsyncState.jsx';
 import PageHeader from '../../shared/components/PageHeader.jsx';
 
@@ -19,6 +20,7 @@ export default function LivePage() {
         title="라이브 매치 센터"
         description="실시간 세트 지표를 확인하고 시청 포인트와 세트 승리 배팅에 참여하세요."
       />
+      <ReplayStartControl />
       {error && <ErrorState>{error}</ErrorState>}
       <ActiveCouponClaim userId={userId} />
       {live.live && live.matches.length > 0 ? live.matches.map((match) => (
