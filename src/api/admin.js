@@ -40,12 +40,23 @@ export const cancelCoupon = (adminId, couponId, reason) => requestAsAdmin(
   { method: 'POST', body: { reason } },
 );
 
-export function fetchCouponTypes(status) {
-  const params = new URLSearchParams();
+export function fetchCouponTypes({ status, cursor, size = 20 } = {}) {
+  const params = new URLSearchParams({ size: String(size) });
   if (status) params.set('status', status);
-  const query = params.toString();
-  return requestJson(`/api/v1/admin/coupon-types${query ? `?${query}` : ''}`);
+  if (cursor) params.set('cursor', String(cursor));
+  return requestJson(`/api/v1/admin/coupon-types?${params}`);
 }
+
+export function fetchCouponTypeOptions({ keyword, cursor, size = 20 } = {}) {
+  const params = new URLSearchParams({ size: String(size) });
+  if (keyword?.trim()) params.set('keyword', keyword.trim());
+  if (cursor) params.set('cursor', String(cursor));
+  return requestJson(`/api/v1/admin/coupon-types/options?${params}`);
+}
+
+export const fetchCouponType = (couponTypeId) => requestJson(
+  `/api/v1/admin/coupon-types/${encodeURIComponent(couponTypeId)}`,
+);
 
 export const createCouponType = (payload) => requestJson('/api/v1/admin/coupon-types', {
   method: 'POST',

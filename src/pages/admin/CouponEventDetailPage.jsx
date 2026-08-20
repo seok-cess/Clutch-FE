@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { NavLink, useNavigate, useParams } from 'react-router';
 import {
   deleteCouponEvent,
   fetchCouponEvent,
+  fetchCouponType,
   manualOpenCouponEvent,
 } from '../../api/admin.js';
 import { ErrorState, LoadingState } from '../../shared/components/AsyncState.jsx';
@@ -15,10 +16,18 @@ const MODE_LABEL = {
   PHASED_FIRST_COME: '단계별 선착순',
 };
 
+function formatCouponBenefit(couponType) {
+  const value = Number(couponType?.discountValue);
+  if (!Number.isFinite(value)) return null;
+  const formatted = value.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+  return couponType.discountType === 'RATE' ? `${formatted}%` : `${formatted}원`;
+}
+
 export default function CouponEventDetailPage() {
   const navigate = useNavigate();
   const { couponEventId } = useParams();
   const [event, setEvent] = useState(null);
+  const [couponTypes, setCouponTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [opening, setOpening] = useState(false);
@@ -28,7 +37,15 @@ export default function CouponEventDetailPage() {
   useEffect(() => {
     let cancelled = false;
     fetchCouponEvent(couponEventId)
-      .then((response) => { if (!cancelled) setEvent(response); })
+      .then(async (response) => {
+        const couponTypeResponse = await Promise.all(
+          response.items.map((item) => fetchCouponType(item.couponTypeId)),
+        ).catch(() => []);
+        if (!cancelled) {
+          setEvent(response);
+          setCouponTypes(couponTypeResponse);
+        }
+      })
       .catch((requestError) => { if (!cancelled) setError(requestError.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -73,6 +90,9 @@ export default function CouponEventDetailPage() {
     : isOpen
       ? '테스트 진행 중'
       : '쿠폰 발급 테스트';
+  const couponTypeById = useMemo(() => new Map(
+    couponTypes.map((couponType) => [String(couponType.couponTypeId), couponType]),
+  ), [couponTypes]);
 
   return (
     <div className="admin-page detail-page">
@@ -123,17 +143,24 @@ export default function CouponEventDetailPage() {
             </div>
             <div className="responsive-table-wrap">
               <table className="app-table">
-                <thead><tr><th>쿠폰 종류 ID</th><th>단계</th><th>오픈 지연</th><th>발급</th><th>잔여</th></tr></thead>
+                <thead><tr><th>쿠폰 종류</th><th>단계</th><th>오픈 지연</th><th>발급</th><th>잔여</th></tr></thead>
                 <tbody>
-                  {event.items.map((item) => (
-                    <tr key={item.couponEventItemId}>
-                      <td>{item.couponTypeId}</td>
-                      <td>{item.phaseSequence ?? '-'}</td>
-                      <td>{item.openOffsetSeconds}초</td>
-                      <td>{formatNumber(item.successCount)} / {formatNumber(item.quantity)}</td>
-                      <td>{formatNumber(item.remainingQuantity)}</td>
-                    </tr>
-                  ))}
+                  {event.items.map((item) => {
+                    const couponType = couponTypeById.get(String(item.couponTypeId));
+                    const benefit = formatCouponBenefit(couponType);
+                    return (
+                      <tr key={item.couponEventItemId}>
+                        <td className="event-coupon-type-cell">
+                          <strong>{couponType?.couponName ?? `쿠폰 종류 ${item.couponTypeId}`}</strong>
+                          <small>ID {item.couponTypeId}{benefit ? ` · ${benefit}` : ''}</small>
+                        </td>
+                        <td>{item.phaseSequence ?? '-'}</td>
+                        <td>{item.openOffsetSeconds}초</td>
+                        <td>{formatNumber(item.successCount)} / {formatNumber(item.quantity)}</td>
+                        <td>{formatNumber(item.remainingQuantity)}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
