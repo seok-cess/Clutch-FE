@@ -3,6 +3,21 @@ import { requestJson } from './client.js';
 export const fetchSchedule = () => requestJson('/api/schedule', { allowNotFound: true });
 export const fetchStandings = () => requestJson('/api/standings', { allowNotFound: true });
 export const fetchLive = () => requestJson('/api/live', { allowNotFound: true });
+
+/**
+ * 팀 순위표 (매치 기준 승·패·승률·세트 득실).
+ *
+ * LCK 는 한 시즌이 여러 스플릿으로 나뉘고, 무엇을 합쳐 보여줄지는 화면 판단이라
+ * 대회 id 목록을 넘긴다. 미지정이면 서버가 현재 대회 하나만 집계한다.
+ */
+export const fetchTeamStandings = ({ season, leagueId, tournamentIds } = {}) => {
+  const params = new URLSearchParams();
+  if (season) params.set('season', season);
+  if (leagueId) params.set('leagueId', leagueId);
+  if (tournamentIds?.length) params.set('tournamentIds', tournamentIds.join(','));
+  const query = params.toString();
+  return requestJson(`/api/standings/teams${query ? `?${query}` : ''}`, { allowNotFound: true });
+};
 export const fetchMatchGames = (matchId) => (
   requestJson(`/api/matches/${encodeURIComponent(matchId)}/games`, { allowNotFound: true })
 );

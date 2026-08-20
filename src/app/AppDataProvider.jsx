@@ -7,10 +7,22 @@ import {
   fetchRecentForm,
   fetchSchedule,
   fetchScoreboard,
-  fetchStandings,
+  fetchTeamStandings,
 } from '../api/index.js';
 
 const META_POLL_MS = 5 * 60 * 1000;
+
+/**
+ * 순위 집계에 넣을 LCK 2026 대회(스플릿).
+ *
+ * 시즌이 스플릿 3개로 나뉘는데 1스플릿은 성격이 다른 컵 대회라
+ * (2025 년에는 이름도 lck_cup 이었다) 정규 순위에서 제외한다.
+ * 네이버·FlashScore 도 같은 기준으로 2·3스플릿만 합산한다.
+ */
+const LCK_2026_TOURNAMENTS = [
+  '115548128960088078', // split 2
+  '115548147890329817', // split 3
+];
 const LIVE_POLL_MS = 1000;
 const BOARD_POLL_MS = 5 * 1000;
 const AppDataContext = createContext(null);
@@ -18,7 +30,7 @@ const AppDataContext = createContext(null);
 export function AppDataProvider({ children }) {
   const location = useLocation();
   const [schedule, setSchedule] = useState([]);
-  const [standings, setStandings] = useState([]);
+  const [teamStandings, setTeamStandings] = useState(null);
   const [recentForm, setRecentForm] = useState({});
   const [playerKda, setPlayerKda] = useState(null);
   const [champions, setChampions] = useState(null);
@@ -38,16 +50,16 @@ export function AppDataProvider({ children }) {
     let cancelled = false;
     const loadMeta = async () => {
       try {
-        const [nextSchedule, nextStandings, nextRecentForm, nextKda, nextChampions] = await Promise.all([
+        const [nextSchedule, nextTeamStandings, nextRecentForm, nextKda, nextChampions] = await Promise.all([
           fetchSchedule(),
-          fetchStandings(),
+          fetchTeamStandings({ tournamentIds: LCK_2026_TOURNAMENTS }),
           fetchRecentForm(),
           fetchPlayerKda(),
           fetchChampionStats(),
         ]);
         if (cancelled) return;
         setSchedule(nextSchedule ?? []);
-        setStandings(nextStandings ?? []);
+        setTeamStandings(nextTeamStandings?.groups ?? []);
         setRecentForm(nextRecentForm ?? {});
         setPlayerKda(nextKda);
         setChampions(nextChampions);
@@ -127,7 +139,7 @@ export function AppDataProvider({ children }) {
 
   const value = useMemo(() => ({
     schedule,
-    standings,
+    teamStandings,
     recentForm,
     playerKda,
     champions,
@@ -140,7 +152,7 @@ export function AppDataProvider({ children }) {
     setActiveWatchMatchId,
   }), [
     schedule,
-    standings,
+    teamStandings,
     recentForm,
     playerKda,
     champions,
