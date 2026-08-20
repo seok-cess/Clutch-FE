@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { fetchCouponTypes } from '../../../api/admin.js';
+import { useEffect, useMemo, useState } from 'react';
+import { fetchCouponType, fetchCouponTypeOptions } from '../../../api/admin.js';
 import { ErrorState } from '../../../shared/components/AsyncState.jsx';
 
 const EMPTY_ITEM = {
@@ -49,13 +49,17 @@ function formatCouponTypeOption(couponType) {
   const benefit = couponType.discountType === 'RATE'
     ? `${value.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}%`
     : `${value.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}원`;
-  return `${couponType.couponName} · ${benefit}${couponType.status === 'INACTIVE' ? ' · 비활성' : ''}`;
+  return `${couponType.couponName} · ${benefit}`;
 }
 
 export default function CouponEventForm({ initialValue, onSubmit, submitting, submitLabel }) {
   const [form, setForm] = useState(() => toFormValue(initialValue));
   const [validationError, setValidationError] = useState(null);
   const [couponTypes, setCouponTypes] = useState([]);
+  const [selectedCouponTypes, setSelectedCouponTypes] = useState({});
+  const [couponTypeKeyword, setCouponTypeKeyword] = useState('');
+  const [couponTypeNextCursor, setCouponTypeNextCursor] = useState(null);
+  const [couponTypeHasNext, setCouponTypeHasNext] = useState(false);
   const [couponTypesLoading, setCouponTypesLoading] = useState(true);
   const [couponTypesError, setCouponTypesError] = useState(null);
 
@@ -64,26 +68,80 @@ export default function CouponEventForm({ initialValue, onSubmit, submitting, su
   }, [initialValue]);
 
   useEffect(() => {
+    const selectedIds = (initialValue?.items ?? [])
+      .map((item) => item.couponTypeId)
+      .filter(Boolean);
+    if (selectedIds.length === 0) return undefined;
     let cancelled = false;
-    setCouponTypesLoading(true);
-    fetchCouponTypes()
-      .then((response) => {
+    Promise.all(selectedIds.map((couponTypeId) => fetchCouponType(couponTypeId)))
+      .then((responses) => {
         if (!cancelled) {
-          setCouponTypes(response);
-          setCouponTypesError(null);
+          setSelectedCouponTypes(Object.fromEntries(
+            responses.map((couponType) => [couponType.couponTypeId, couponType]),
+          ));
         }
       })
-      .catch((requestError) => {
-        if (!cancelled) {
-          setCouponTypes([]);
-          setCouponTypesError(requestError.message);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setCouponTypesLoading(false);
-      });
+      .catch(() => {});
     return () => { cancelled = true; };
-  }, []);
+  }, [initialValue]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setCouponTypesLoading(true);
+      fetchCouponTypeOptions({ keyword: couponTypeKeyword })
+        .then((response) => {
+          if (!cancelled) {
+            setCouponTypes(response.options);
+            setCouponTypeNextCursor(response.nextCursor);
+            setCouponTypeHasNext(response.hasNext);
+            setCouponTypesError(null);
+          }
+        })
+        .catch((requestError) => {
+          if (!cancelled) {
+            setCouponTypes([]);
+            setCouponTypesError(requestError.message);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setCouponTypesLoading(false);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [couponTypeKeyword]);
+
+  const loadMoreCouponTypes = async () => {
+    setCouponTypesLoading(true);
+    setCouponTypesError(null);
+    try {
+      const response = await fetchCouponTypeOptions({
+        keyword: couponTypeKeyword,
+        cursor: couponTypeNextCursor,
+      });
+      setCouponTypes((current) => [...current, ...response.options]);
+      setCouponTypeNextCursor(response.nextCursor);
+      setCouponTypeHasNext(response.hasNext);
+    } catch (requestError) {
+      setCouponTypesError(requestError.message);
+    } finally {
+      setCouponTypesLoading(false);
+    }
+  };
+
+  const selectableCouponTypes = useMemo(() => {
+    const byId = new Map(couponTypes.map((couponType) => [
+      String(couponType.couponTypeId),
+      couponType,
+    ]));
+    Object.values(selectedCouponTypes).forEach((couponType) => {
+      byId.set(String(couponType.couponTypeId), couponType);
+    });
+    return [...byId.values()];
+  }, [couponTypes, selectedCouponTypes]);
 
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
   const updateItem = (index, field, value) => setForm((current) => ({
@@ -119,11 +177,6 @@ export default function CouponEventForm({ initialValue, onSubmit, submitting, su
     const selectedIds = payload.items.map((item) => item.couponTypeId);
     if (new Set(selectedIds).size !== selectedIds.length) {
       setValidationError('한 이벤트에서 같은 쿠폰 종류를 중복 선택할 수 없습니다.');
-      return;
-    }
-    const couponTypeById = new Map(couponTypes.map((couponType) => [Number(couponType.couponTypeId), couponType]));
-    if (selectedIds.some((couponTypeId) => couponTypeById.get(couponTypeId)?.status !== 'ACTIVE')) {
-      setValidationError('활성 상태인 쿠폰 종류를 선택해 주세요.');
       return;
     }
     onSubmit(payload);
@@ -216,7 +269,16 @@ export default function CouponEventForm({ initialValue, onSubmit, submitting, su
         {couponTypesError && (
           <ErrorState>쿠폰 종류를 불러오지 못했습니다: {couponTypesError}</ErrorState>
         )}
-        {!couponTypesLoading && !couponTypesError && couponTypes.every((couponType) => couponType.status !== 'ACTIVE') && (
+        <label className="field-block">
+          <span>쿠폰 종류 이름 검색</span>
+          <input
+            type="search"
+            value={couponTypeKeyword}
+            onChange={(event) => setCouponTypeKeyword(event.target.value)}
+            placeholder="예: 10% 할인"
+          />
+        </label>
+        {!couponTypesLoading && !couponTypesError && couponTypes.length === 0 && (
           <p className="surface-empty-copy">활성 쿠폰 종류가 없습니다. 먼저 ‘쿠폰 종류’ 메뉴에서 사용할 혜택을 등록하거나 활성화해 주세요.</p>
         )}
 
@@ -229,11 +291,23 @@ export default function CouponEventForm({ initialValue, onSubmit, submitting, su
                 <select
                   required
                   value={item.couponTypeId}
-                  onChange={(event) => updateItem(index, 'couponTypeId', event.target.value)}
+                  onChange={(event) => {
+                    const couponTypeId = event.target.value;
+                    updateItem(index, 'couponTypeId', couponTypeId);
+                    const selected = selectableCouponTypes.find((couponType) => (
+                      String(couponType.couponTypeId) === couponTypeId
+                    ));
+                    if (selected) {
+                      setSelectedCouponTypes((current) => ({
+                        ...current,
+                        [selected.couponTypeId]: selected,
+                      }));
+                    }
+                  }}
                   disabled={couponTypesLoading || Boolean(couponTypesError)}
                 >
                   <option value="">{couponTypesLoading ? '쿠폰 종류 불러오는 중' : '쿠폰 종류를 선택하세요'}</option>
-                  {couponTypes.map((couponType) => {
+                  {selectableCouponTypes.map((couponType) => {
                     const selectedElsewhere = form.items.some((currentItem, itemIndex) => (
                       itemIndex !== index && String(currentItem.couponTypeId) === String(couponType.couponTypeId)
                     ));
@@ -241,7 +315,7 @@ export default function CouponEventForm({ initialValue, onSubmit, submitting, su
                       <option
                         key={couponType.couponTypeId}
                         value={couponType.couponTypeId}
-                        disabled={couponType.status !== 'ACTIVE' || selectedElsewhere}
+                        disabled={selectedElsewhere}
                       >
                         {formatCouponTypeOption(couponType)}
                       </option>
@@ -286,6 +360,18 @@ export default function CouponEventForm({ initialValue, onSubmit, submitting, su
             </div>
           ))}
         </div>
+        {couponTypeHasNext && (
+          <div className="form-actions">
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={loadMoreCouponTypes}
+              disabled={couponTypesLoading}
+            >
+              {couponTypesLoading ? '불러오는 중' : '쿠폰 종류 더 불러오기'}
+            </button>
+          </div>
+        )}
       </section>
 
       <div className="form-actions">

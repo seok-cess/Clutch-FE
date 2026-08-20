@@ -46,6 +46,8 @@ function validateForm(form) {
 export default function CouponTypesManager() {
   const [status, setStatus] = useState('');
   const [couponTypes, setCouponTypes] = useState([]);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -53,13 +55,21 @@ export default function CouponTypesManager() {
   const [editing, setEditing] = useState(null);
   const [mutatingId, setMutatingId] = useState(null);
 
-  const loadCouponTypes = useCallback(async () => {
+  const loadCouponTypes = useCallback(async ({ append = false, cursor = null } = {}) => {
     setLoading(true);
     setError(null);
     try {
-      setCouponTypes(await fetchCouponTypes(status || undefined));
+      const response = await fetchCouponTypes({
+        status: status || undefined,
+        cursor,
+      });
+      setCouponTypes((current) => (
+        append ? [...current, ...response.couponTypes] : response.couponTypes
+      ));
+      setNextCursor(response.nextCursor);
+      setHasNext(response.hasNext);
     } catch (requestError) {
-      setCouponTypes([]);
+      if (!append) setCouponTypes([]);
       setError(requestError.message);
     } finally {
       setLoading(false);
@@ -67,7 +77,7 @@ export default function CouponTypesManager() {
   }, [status]);
 
   useEffect(() => {
-    loadCouponTypes();
+    loadCouponTypes({ append: false, cursor: null });
   }, [loadCouponTypes]);
 
   const closeForm = () => {
@@ -96,7 +106,7 @@ export default function CouponTypesManager() {
       setNotice('새 쿠폰 종류를 활성 상태로 등록했습니다.');
     }
     closeForm();
-    await loadCouponTypes();
+    await loadCouponTypes({ append: false, cursor: null });
   };
 
   const toggleStatus = async (couponType) => {
@@ -107,7 +117,7 @@ export default function CouponTypesManager() {
     try {
       await changeCouponTypeStatus(couponType.couponTypeId, nextStatus);
       setNotice(`${couponType.couponName}을(를) ${nextStatus === 'ACTIVE' ? '활성화' : '비활성화'}했습니다.`);
-      await loadCouponTypes();
+      await loadCouponTypes({ append: false, cursor: null });
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -123,7 +133,7 @@ export default function CouponTypesManager() {
     try {
       await deleteCouponType(couponType.couponTypeId);
       setNotice('쿠폰 종류를 삭제했습니다.');
-      await loadCouponTypes();
+      await loadCouponTypes({ append: false, cursor: null });
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -158,7 +168,7 @@ export default function CouponTypesManager() {
             ))}
           </select>
         </label>
-        <button className="button-secondary" type="button" onClick={loadCouponTypes} disabled={loading}>새로고침</button>
+        <button className="button-secondary" type="button" onClick={() => loadCouponTypes({ append: false, cursor: null })} disabled={loading}>새로고침</button>
       </section>
 
       {loading ? <LoadingState /> : error ? (
@@ -196,6 +206,18 @@ export default function CouponTypesManager() {
               </tbody>
             </table>
           </div>
+          {hasNext && (
+            <div className="form-actions">
+              <button
+                className="button-secondary"
+                type="button"
+                onClick={() => loadCouponTypes({ append: true, cursor: nextCursor })}
+                disabled={loading}
+              >
+                {loading ? '불러오는 중' : '더 불러오기'}
+              </button>
+            </div>
+          )}
         </section>
       )}
     </>

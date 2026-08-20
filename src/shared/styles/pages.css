@@ -656,6 +656,19 @@
   min-width: 248px;
 }
 
+.event-coupon-type-cell strong {
+  display: block;
+  color: var(--app-text);
+  font-weight: 800;
+}
+
+.event-coupon-type-cell small {
+  display: block;
+  margin-top: 4px;
+  color: var(--app-text-faint);
+  font-size: 0.7rem;
+}
+
 .backfill-status progress {
   width: 100%;
   height: 10px;
