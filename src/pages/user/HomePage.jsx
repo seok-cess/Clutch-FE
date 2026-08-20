@@ -7,7 +7,7 @@ export default function HomePage() {
   const {
     live,
     schedule,
-    standings,
+    teamStandings,
     recentForm,
     playerKda,
     champions,
@@ -21,7 +21,7 @@ export default function HomePage() {
       <MainScreen
         live={live}
         schedule={schedule}
-        standings={standings}
+        teamStandings={teamStandings}
         recentForm={recentForm}
         playerKda={playerKda}
         champions={champions}

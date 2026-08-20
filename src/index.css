@@ -629,6 +629,22 @@ tbody tr:hover td { color: var(--text); }
   gap: 12px;
 }
 
+/* 순위표 제목 — 패널 안 첫 요소라 위 여백을 두지 않는다 */
+.standings-heading {
+  font-size: 1.05rem;
+  margin: 0 0 16px;
+}
+
+/* 팀 순위표 — 숫자 열이 많아 헤더도 우측 정렬을 맞춘다 */
+.team-standings th.num { text-align: right; }
+
+/* 승수는 순위를 가르는 값이라 한 단계 밝게 */
+.team-standings td.strong { color: var(--text); }
+
+/* 득실차 부호 — 색만으로 구분하지 않도록 +/- 기호를 함께 표기한다 */
+.team-standings td.pos { color: var(--steel); }
+.team-standings td.neg { color: var(--muted); }
+
 /* 강조 행 — 좌측 2px 스틸 블루 표시선 */
 .row-lead td:first-child { border-left: 2px solid var(--steel); }
 .row-lead td { color: var(--text); }

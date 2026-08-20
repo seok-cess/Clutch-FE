@@ -9,7 +9,7 @@ import SeasonSummary from './SeasonSummary.jsx';
  * (자리가 사라지면 폴링으로 값이 들어올 때 화면이 흔들린다).
  */
 export default function MainScreen({
-  live, schedule, standings, recentForm, playerKda, champions,
+  live, schedule, teamStandings, recentForm, playerKda, champions,
   scoreboard, onOpenMatch, onGoLive, onGoSchedule,
 }) {
   const liveMatch = live?.matches?.find((m) => !m.matchFinished) ?? live?.matches?.[0] ?? null;
@@ -30,7 +30,7 @@ export default function MainScreen({
       </Reveal>
 
       <Reveal className="cl-schedgrid">
-        <StandingsCard standings={standings} />
+        <StandingsCard teamStandings={teamStandings} />
         <ScheduleCard schedule={schedule} onOpenMatch={onOpenMatch} />
       </Reveal>
 
@@ -244,19 +244,16 @@ function NextMatchCard({ upcoming, featured, onOpenMatch, onGoSchedule }) {
 
 /* ── 순위 ── */
 
-function StandingsCard({ standings }) {
-  const section = standings?.find((s) => s.rankings?.length > 0);
-  const rows = (section?.rankings ?? []).flatMap((r) =>
-    (r.teams ?? []).map((t) => ({ ordinal: r.ordinal, ...t })));
-
-  // 진출선은 리그마다 다르므로 임의로 긋지 않는다. 8팀 이상일 때만 관례적인 상위 절반에 표시한다.
-  const cutIndex = rows.length >= 8 ? Math.floor(rows.length / 2) - 1 : -1;
+function StandingsCard({ teamStandings }) {
+  // 그룹이 여럿이면 첫 그룹만 보여준다 (메인은 요약 카드라 전체는 순위 페이지에서 본다)
+  const group = teamStandings?.find((g) => g.rows?.length > 0);
+  const rows = group?.rows ?? [];
 
   return (
     <section className="cl-card">
       <div className="cl-ch">
         <h3>순위</h3>
-        {section?.sectionName && <span className="s">{section.sectionName}</span>}
+        {group?.groupName && <span className="s">{group.groupName}</span>}
       </div>
 
       {rows.length === 0 ? (
@@ -268,17 +265,16 @@ function StandingsCard({ standings }) {
             <span className="rt">승-패</span><span className="rt">승률</span>
           </div>
           {rows.map((t, i) => {
-            const rate = winRate(t.wins, t.losses);
+            // 서버가 0~1 로 주므로 화면 표기(%)에 맞춰 환산한다
+            const rate = t.winRate == null ? null : t.winRate * 100;
             return (
-              <div
-                key={`${t.code ?? t.name}-${i}`}
-                className={`cl-rk ${i < 3 ? 'top' : ''} ${i === cutIndex ? 'cut' : ''}`}
-              >
-                <span className="cl-rkn">{t.ordinal ?? i + 1}</span>
-                {t.image ? <img className="cl-rklg" src={t.image} alt="" loading="lazy" />
-                         : <Crest size={22} tone={i < 3 ? 'b' : ''} />}
-                <span className="cl-rkt">{t.code ?? t.name}</span>
-                <span className="cl-rkw">{t.wins ?? 0}-{t.losses ?? 0}</span>
+              <div key={t.teamCode} className={`cl-rk ${i < 3 ? 'top' : ''}`}>
+                <span className="cl-rkn">{t.rank ?? i + 1}</span>
+                {t.teamImageUrl
+                  ? <img className="cl-rklg" src={t.teamImageUrl} alt="" loading="lazy" />
+                  : <Crest size={22} tone={i < 3 ? 'b' : ''} />}
+                <span className="cl-rkt">{t.teamCode}</span>
+                <span className="cl-rkw">{t.wins}-{t.losses}</span>
                 <span className="cl-rkp">
                   {rate == null ? '—' : rate.toFixed(1)}<span className="u">%</span>
                 </span>
@@ -286,9 +282,6 @@ function StandingsCard({ standings }) {
               </div>
             );
           })}
-          {cutIndex >= 0 && (
-            <p className="cl-cutnote"><span />{cutIndex + 1}위까지 플레이오프 진출</p>
-          )}
         </>
       )}
     </section>
