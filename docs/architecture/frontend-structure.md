@@ -102,6 +102,7 @@ src/
 | `/admin/coupon-events/:couponEventId/edit` | 쿠폰 이벤트 수정 |
 | `/admin/coupons` | 발급 쿠폰 취소 |
 | `/admin/coupon-types` | 쿠폰 종류 등록, 수정과 상태 관리 |
+| `/admin/coupon-claims` | 쿠폰 발급 요청과 실제 발급 결과 조회 |
 | `/admin/backfill` | 경기 데이터 백필 |
 
 ## 보호 범위

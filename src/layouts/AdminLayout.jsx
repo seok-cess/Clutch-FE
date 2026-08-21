@@ -8,6 +8,7 @@ const ADMIN_NAVIGATION = [
   { to: '/admin/coupon-events', label: '쿠폰 이벤트' },
   { to: '/admin/coupons', label: '발급 쿠폰' },
   { to: '/admin/coupon-types', label: '쿠폰 종류' },
+  { to: '/admin/coupon-claims', label: '쿠폰 발급 내역' },
   { to: '/admin/backfill', label: '데이터 백필' },
 ];
 

@@ -11,6 +11,9 @@ const STATUS_LABEL = {
   REFUNDED: '환불',
   ACTIVE: '활성',
   INACTIVE: '비활성',
+  PENDING: '처리 중',
+  SUCCEEDED: '발급 성공',
+  FAILED: '발급 실패',
 };
 
 export default function StatusBadge({ status, label }) {

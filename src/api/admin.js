@@ -78,6 +78,31 @@ export const deleteCouponType = (couponTypeId) => requestJson(
   { method: 'DELETE' },
 );
 
+export function fetchCouponClaimHistory(adminId, {
+  eventKeyword,
+  triggerKeyword,
+  userId,
+  requestStatus,
+  couponStatus,
+  couponTypeId,
+  from,
+  to,
+  cursor,
+  size = 20,
+} = {}) {
+  const params = new URLSearchParams({ size: String(size) });
+  if (eventKeyword?.trim()) params.set('eventKeyword', eventKeyword.trim());
+  if (triggerKeyword?.trim()) params.set('triggerKeyword', triggerKeyword.trim());
+  if (userId) params.set('userId', String(userId));
+  if (requestStatus) params.set('requestStatus', requestStatus);
+  if (couponStatus) params.set('couponStatus', couponStatus);
+  if (couponTypeId) params.set('couponTypeId', String(couponTypeId));
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  if (cursor) params.set('cursor', String(cursor));
+  return requestAsAdmin(`/api/v1/admin/coupon-claims?${params}`, adminId);
+}
+
 export const fetchBackfillStatus = () => requestJson('/api/admin/backfill/status');
 
 export function startBackfill({ limit = 1000, all = false } = {}) {
