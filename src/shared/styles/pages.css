@@ -669,6 +669,104 @@
   font-size: 0.7rem;
 }
 
+/* 관리자 쿠폰 발급 내역 */
+.claim-history-filter-surface {
+  padding: 20px;
+}
+
+.claim-history-filter {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.75fr) minmax(260px, 1.5fr) repeat(2, minmax(150px, 0.75fr));
+  align-items: end;
+  gap: 16px;
+}
+
+.claim-history-keyword-field {
+  min-width: 0;
+}
+
+.claim-history-filter-actions {
+  grid-column: span 2;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.claim-history-table {
+  min-width: 1280px;
+}
+
+.claim-history-table td {
+  vertical-align: top;
+}
+
+.claim-history-table td > small {
+  display: block;
+  margin-top: 5px;
+  color: var(--app-text-faint);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.claim-history-primary {
+  display: block;
+  color: var(--app-text);
+  font-weight: 800;
+}
+
+.claim-history-benefit {
+  display: block;
+  color: var(--app-gold);
+  font-size: 0.94rem;
+  font-weight: 850;
+}
+
+.claim-history-failure {
+  max-width: 260px;
+  color: var(--app-text-muted);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.claim-history-pagination {
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--app-line-soft);
+}
+
+.claim-history-pagination > span {
+  color: var(--app-text-faint);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.claim-history-pagination > div {
+  display: flex;
+  gap: 8px;
+}
+
+.status-pending {
+  border-color: rgba(90, 169, 230, 0.42);
+  color: #81c4f5;
+  background: rgba(90, 169, 230, 0.07);
+}
+
+.status-succeeded {
+  border-color: rgba(85, 201, 138, 0.42);
+  color: #72dfa5;
+  background: rgba(85, 201, 138, 0.07);
+}
+
+.status-failed {
+  border-color: rgba(228, 81, 76, 0.45);
+  color: #ff8c86;
+  background: rgba(228, 81, 76, 0.07);
+}
+
 .backfill-status progress {
   width: 100%;
   height: 10px;
@@ -735,6 +833,14 @@
   .coupon-type-name-field {
     grid-column: 1 / -1;
   }
+
+  .claim-history-filter {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .claim-history-filter-actions {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 760px) {
@@ -759,6 +865,18 @@
 
   .coupon-type-form {
     grid-template-columns: 1fr;
+  }
+
+  .claim-history-filter {
+    grid-template-columns: 1fr;
+  }
+
+  .claim-history-filter-actions {
+    grid-column: auto;
+  }
+
+  .claim-history-filter-actions > button {
+    flex: 1;
   }
 
   .coupon-type-name-field {

@@ -55,7 +55,7 @@ export function requestAsAdmin(url, adminId, options = {}) {
     ...options,
     headers: {
       ...options.headers,
-      'X-Admin-Id': String(adminId),
+      'X-User-Id': String(adminId),
     },
   });
 }

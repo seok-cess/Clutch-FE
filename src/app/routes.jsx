@@ -7,6 +7,7 @@ import BackfillPage from '../pages/admin/BackfillPage.jsx';
 import CouponEventDetailPage from '../pages/admin/CouponEventDetailPage.jsx';
 import CouponEventEditorPage from '../pages/admin/CouponEventEditorPage.jsx';
 import CouponEventsPage from '../pages/admin/CouponEventsPage.jsx';
+import CouponClaimHistoryPage from '../pages/admin/CouponClaimHistoryPage.jsx';
 import CouponsPage from '../pages/admin/CouponsPage.jsx';
 import CouponTypesPage from '../pages/admin/CouponTypesPage.jsx';
 import DiagnosticsPage from '../pages/user/DiagnosticsPage.jsx';
@@ -49,6 +50,7 @@ export default function AppRoutes() {
         <Route path="coupon-events/:couponEventId/edit" element={<CouponEventEditorPage />} />
         <Route path="coupons" element={<CouponsPage />} />
         <Route path="coupon-types" element={<CouponTypesPage />} />
+        <Route path="coupon-claims" element={<CouponClaimHistoryPage />} />
         <Route path="backfill" element={<BackfillPage />} />
       </Route>
 
