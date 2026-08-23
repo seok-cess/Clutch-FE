@@ -26,7 +26,7 @@ const LCK_2026_TOURNAMENTS = [
 ];
 const LIVE_POLL_MS = 1000;
 const BETTING_CANDIDATE_POLL_MS = 5 * 1000;
-const BOARD_POLL_MS = 5 * 1000;
+const BOARD_POLL_MS = 1000;
 const AppDataContext = createContext(null);
 
 export function AppDataProvider({ children }) {

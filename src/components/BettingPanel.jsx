@@ -3,17 +3,6 @@ import { fetchCurrentBettingEvent, placeBet } from '../api.js';
 
 const MIN_BET_POINT = 1_000;
 const MAX_BET_POINT = 100_000;
-const BETTING_STATUS_LABEL = {
-  OPEN: '배팅 가능',
-  CLOSED: '배팅 마감',
-  SETTLED: '정산 완료',
-  CANCELLED: '배팅 취소',
-};
-const BETTING_UNAVAILABLE_MESSAGE = {
-  CLOSED: '배팅이 마감되었습니다.',
-  SETTLED: '배팅 정산이 완료되었습니다.',
-  CANCELLED: '배팅이 취소되었습니다.',
-};
 const USER_BET_STATUS_LABEL = {
   PLACED: '접수 완료',
   WON: '적중',
@@ -31,8 +20,6 @@ function createPreviewEvent(match) {
     firstTeamId: match.teams[0].id,
     secondTeamId: match.teams[1].id,
     status: 'OPEN',
-    closesAt: '2026-08-16T15:40:00',
-    remainingSeconds: 742,
     bettingAvailable: true,
     myBet: null,
   };
@@ -42,13 +29,6 @@ function createPreviewEvent(match) {
 function teamLabel(match, teamId) {
   const team = match.teams?.find((candidate) => candidate.id === teamId);
   return team?.code ?? team?.name ?? teamId;
-}
-
-/** 배팅 마감까지 남은 초를 MM:SS로 표시한다. */
-function formatRemainingTime(totalSeconds) {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 /** 키보드로 입력한 배팅액이 허용 범위인지 검증한다. */
@@ -73,7 +53,7 @@ export default function BettingPanel({ match, userId, preview = false }) {
   const [error, setError] = useState(null);
 
   /** 사용자와 매치에 해당하는 최신 배팅 이벤트를 다시 불러온다. */
-  const loadEvent = useCallback(async () => {
+  const loadEvent = useCallback(async ({ silent = false } = {}) => {
     if (preview) {
       setEvent((currentEvent) => currentEvent ?? createPreviewEvent(match));
       setLoading(false);
@@ -86,17 +66,25 @@ export default function BettingPanel({ match, userId, preview = false }) {
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const nextEvent = await fetchCurrentBettingEvent(matchId, userId);
       setEvent(nextEvent);
-      setSelectedTeamId(nextEvent?.myBet?.selectedTeamId ?? null);
+      if (nextEvent?.myBet) {
+        setSelectedTeamId(nextEvent.myBet.selectedTeamId);
+      } else if (!silent) {
+        setSelectedTeamId(null);
+      }
     } catch (requestError) {
-      setEvent(null);
-      setError(requestError.message);
+      if (!silent) {
+        setEvent(null);
+        setError(requestError.message);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [matchId, preview, userId]);
 
@@ -105,21 +93,12 @@ export default function BettingPanel({ match, userId, preview = false }) {
   }, [loadEvent]);
 
   useEffect(() => {
-    if (!event || event.status !== 'OPEN' || event.remainingSeconds <= 0) return undefined;
+    if (preview || !userId) return undefined;
     const timer = window.setInterval(() => {
-      setEvent((currentEvent) => {
-        if (!currentEvent || currentEvent.remainingSeconds <= 0) return currentEvent;
-        const remainingSeconds = currentEvent.remainingSeconds - 1;
-        if (remainingSeconds === 0) window.clearInterval(timer);
-        return {
-          ...currentEvent,
-          remainingSeconds,
-          bettingAvailable: remainingSeconds > 0 && currentEvent.bettingAvailable,
-        };
-      });
+      loadEvent({ silent: true });
     }, 1_000);
     return () => window.clearInterval(timer);
-  }, [event?.bettingEventId, event?.status]);
+  }, [loadEvent, preview, userId]);
 
   /** 선택한 팀과 포인트로 배팅을 등록한 뒤 최신 이벤트를 갱신한다. */
   const submitBet = async () => {
@@ -189,12 +168,7 @@ export default function BettingPanel({ match, userId, preview = false }) {
         <>
           <div className="betting-meta">
             <span>{event.setNumber}세트</span>
-            <span>{BETTING_STATUS_LABEL[event.status] ?? event.status}</span>
-            <span>
-              {event.remainingSeconds >= 0
-                ? `${formatRemainingTime(event.remainingSeconds)} 남음`
-                : '마감 시각 확인 중'}
-            </span>
+            <span>{event.bettingAvailable ? '배팅 가능' : '배팅 닫힘'}</span>
           </div>
 
           {event.myBet ? (
@@ -252,10 +226,7 @@ export default function BettingPanel({ match, userId, preview = false }) {
               </div>
 
               {!event.bettingAvailable && (
-                <p className="betting-message">
-                  {BETTING_UNAVAILABLE_MESSAGE[event.status]
-                    ?? '현재는 배팅을 등록할 수 없습니다.'}
-                </p>
+                <p className="betting-message">배팅이 닫혔습니다.</p>
               )}
             </>
           )}
