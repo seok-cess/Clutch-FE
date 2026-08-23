@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router';
 import {
+  fetchBettingCandidates,
   fetchChampionStats,
   fetchLive,
   fetchPlayerKda,
@@ -24,6 +25,7 @@ const LCK_2026_TOURNAMENTS = [
   '115548147890329817', // split 3
 ];
 const LIVE_POLL_MS = 1000;
+const BETTING_CANDIDATE_POLL_MS = 5 * 1000;
 const BOARD_POLL_MS = 5 * 1000;
 const AppDataContext = createContext(null);
 
@@ -35,6 +37,7 @@ export function AppDataProvider({ children }) {
   const [playerKda, setPlayerKda] = useState(null);
   const [champions, setChampions] = useState(null);
   const [live, setLive] = useState({ live: false, matches: [] });
+  const [bettingCandidates, setBettingCandidates] = useState([]);
   const [scoreboard, setScoreboard] = useState(null);
   const [error, setError] = useState(null);
   const [activeWatchMatchId, setActiveWatchMatchId] = useState(null);
@@ -52,6 +55,15 @@ export function AppDataProvider({ children }) {
       if (nextLive) setLive(nextLive);
     } catch {
       // 라이브 조회는 다음 폴링에서 자동 복구한다.
+    }
+  }, []);
+
+  const refreshBettingCandidates = useCallback(async () => {
+    try {
+      const nextCandidates = await fetchBettingCandidates();
+      setBettingCandidates(nextCandidates ?? []);
+    } catch {
+      // 배팅 후보 조회는 다음 주기에서 자동 복구한다.
     }
   }, []);
 
@@ -90,6 +102,12 @@ export function AppDataProvider({ children }) {
     const timer = window.setInterval(refreshLive, LIVE_POLL_MS);
     return () => window.clearInterval(timer);
   }, [refreshLive]);
+
+  useEffect(() => {
+    refreshBettingCandidates();
+    const timer = window.setInterval(refreshBettingCandidates, BETTING_CANDIDATE_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [refreshBettingCandidates]);
 
   const watchableMatchIds = useMemo(() => live.matches
     .filter((match) => {
@@ -141,9 +159,11 @@ export function AppDataProvider({ children }) {
     playerKda,
     champions,
     live,
+    bettingCandidates,
     scoreboard,
     error,
     refreshLive,
+    refreshBettingCandidates,
     userId,
     setUserId,
     activeWatchMatchId,
@@ -155,9 +175,11 @@ export function AppDataProvider({ children }) {
     playerKda,
     champions,
     live,
+    bettingCandidates,
     scoreboard,
     error,
     refreshLive,
+    refreshBettingCandidates,
     userId,
     activeWatchMatchId,
   ]);
