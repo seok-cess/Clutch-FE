@@ -37,12 +37,23 @@ export default function GoldChart({ points, objectives }) {
   const [hover, setHover] = useState(null); // { i, px, py }
   const [objHover, setObjHover] = useState(null);
 
-  if (!points || points.length < 2) {
+  // 폴링 응답 경계에서 같은 시각의 스냅샷이 섞이거나 늦은 응답이 들어와도,
+  // 선 그래프는 게임 시간 순으로만 그린다. 같은 초에는 마지막 스냅샷을 사용한다.
+  const pointsByTime = new Map();
+  for (const point of points ?? []) {
+    if (Number.isFinite(point?.gameTimeSeconds) && Number.isFinite(point?.goldDiff)) {
+      pointsByTime.set(point.gameTimeSeconds, point);
+    }
+  }
+  const chronologicalPoints = [...pointsByTime.values()]
+    .sort((a, b) => a.gameTimeSeconds - b.gameTimeSeconds);
+
+  if (chronologicalPoints.length < 2) {
     return <p className="muted">추이 데이터가 아직 충분하지 않습니다.</p>;
   }
 
-  const times = points.map((p) => p.gameTimeSeconds ?? 0);
-  const diffs = points.map((p) => p.goldDiff ?? 0);
+  const times = chronologicalPoints.map((p) => p.gameTimeSeconds);
+  const diffs = chronologicalPoints.map((p) => p.goldDiff);
 
   const tMin = Math.min(...times);
   const tMax = Math.max(...times);
@@ -55,7 +66,7 @@ export default function GoldChart({ points, objectives }) {
   const y = (d) => PAD.top + plotH / 2 - (d / maxAbs) * (plotH / 2);
 
   const zeroY = y(0);
-  const line = points
+  const line = chronologicalPoints
     .map((p, i) => `${i === 0 ? 'M' : 'L'}${x(times[i]).toFixed(1)},${y(diffs[i]).toFixed(1)}`)
     .join(' ');
   const area = `${line} L${x(tMax).toFixed(1)},${zeroY.toFixed(1)} L${x(tMin).toFixed(1)},${zeroY.toFixed(1)} Z`;
@@ -67,7 +78,12 @@ export default function GoldChart({ points, objectives }) {
   const last = diffs[diffs.length - 1];
 
   // 표시할 오브젝트 (대형만) — 마커는 SVG 밖 HTML 로 그려 가로 왜곡을 피한다
-  const marks = (objectives ?? [])
+  const marksByKey = new Map();
+  for (const objective of objectives ?? []) {
+    const key = [objective?.gameTimeSeconds, objective?.side, objective?.type, objective?.subtype ?? ''].join('|');
+    marksByKey.set(key, objective);
+  }
+  const marks = [...marksByKey.values()]
     .filter((o) => OBJ_MARK[o.type] && o.gameTimeSeconds >= tMin && o.gameTimeSeconds <= tMax)
     .map((o) => ({ ...o, cx: x(o.gameTimeSeconds) }));
 
@@ -96,7 +112,7 @@ export default function GoldChart({ points, objectives }) {
   };
 
   // 오브젝트 마커에 올렸을 때는 골드 툴팁을 숨긴다 (둘이 겹쳐 읽기 어려움)
-  const hp = hover && !objHover ? points[hover.i] : null;
+  const hp = hover && !objHover ? chronologicalPoints[hover.i] : null;
   // 툴팁이 오른쪽 끝에서 잘리지 않게 방향 전환
   const tipFlip = hover && hover.px > W - 210;
 
