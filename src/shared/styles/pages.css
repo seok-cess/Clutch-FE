@@ -44,6 +44,26 @@
   padding: 12px;
   line-height: 1.55;
 }
+/* 체크박스는 .field-block 의 전체폭 입력 규칙에서 빼낸다 */
+.field-block.checkbox-field input[type='checkbox'] {
+  width: 18px;
+  min-height: 18px;
+  height: 18px;
+  padding: 0;
+  accent-color: var(--app-blue);
+  cursor: pointer;
+  justify-self: start;
+}
+
+.field-block.checkbox-field input[type='checkbox']:disabled {
+  cursor: not-allowed;
+}
+
+.field-block input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 
 .field-block small {
   color: var(--app-text-faint);
@@ -1240,6 +1260,19 @@
 }
 
 .sample-seek { width: 100%; accent-color: var(--app-blue); cursor: pointer; }
+
+/* 샘플 재생의 펜타킬 트리거 결과 안내 */
+.sample-trigger-notice {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--app-line-soft);
+  border-radius: var(--app-radius);
+  background: var(--app-surface-soft, rgba(255, 255, 255, 0.03));
+  color: var(--app-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
 
 .sample-progress {
   height: 2px;
