@@ -88,12 +88,18 @@ function playerAt(t, player, teamKillsNow, teamKillsFinal) {
   const ratio = SAMPLE_DURATION === 0 ? 1 : Math.min(1, t / SAMPLE_DURATION);
   const killRatio = teamKillsFinal === 0 ? ratio : teamKillsNow / teamKillsFinal;
 
-  // 펜타킬 킬은 시각별로 하나씩 붙는다 — 아직 안 지난 킬은 빼둬야 순차로 오른다
+  // 펜타킬 킬은 시각별로 하나씩 붙는다 — 아직 안 지난 킬은 빼둬야 순차로 오른다.
+  //
+  // 주입한 5킬에는 killRatio 를 곱하지 않는다. 곱하면 팀 킬 비율(0.5 안팎)만큼
+  // 깎여 화면에도 서버 감지기에도 3킬쯤으로만 보인다 — 펜타킬이 성립하지 않는다.
+  // 비율은 펜타킬을 뺀 나머지 킬에만 적용하고, 주입분은 그대로 더한다.
   const isPentaPlayer = player.no === SAMPLE_PENTAKILL.participantNo;
   const pentaGot = isPentaPlayer
     ? SAMPLE_PENTAKILL.killTimes.filter((killAt) => killAt <= t).length
     : 0;
-  const baseKills = isPentaPlayer ? player.kills - (5 - pentaGot) : player.kills;
+  const kills = isPentaPlayer
+    ? Math.round((player.kills - 5) * killRatio) + pentaGot
+    : Math.round(player.kills * killRatio);
 
   return {
     participantId: player.no,
@@ -101,7 +107,7 @@ function playerAt(t, player, teamKillsNow, teamKillsFinal) {
     championId: player.champion,
     role: player.role,
     level: Math.max(1, Math.round(player.level * ratio)),
-    kills: Math.round(baseKills * killRatio),
+    kills,
     deaths: Math.round(player.deaths * ratio),
     assists: Math.round(player.assists * killRatio),
     creepScore: Math.round(player.creepScore * ratio),
