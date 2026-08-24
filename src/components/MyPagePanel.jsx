@@ -28,10 +28,26 @@ function betLabels(bet, matches) {
   };
 }
 
-/** UTC 저장 시각을 목록용 분 단위 문자열로 표시한다. */
+/** UTC 저장 시각을 한국 표준시(KST) 기준 목록용 분 단위 문자열로 표시한다. */
 function formatCreatedAt(createdAt) {
   if (!createdAt) return '-';
-  return `${createdAt.replace('T', ' ').slice(0, 16)} UTC`;
+  // Spring LocalDateTime은 UTC 값이어도 오프셋 없이 직렬화될 수 있다.
+  // 오프셋이 없는 값은 UTC로 해석한 뒤 한국 시간대로 변환한다.
+  const normalized = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(createdAt)
+    ? createdAt
+    : `${createdAt}Z`;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  return `${new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date)} KST`;
 }
 
 /** 현재 사용자의 보유 포인트와 전체 배팅 이력을 표시한다. */
