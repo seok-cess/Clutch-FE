@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchCouponType, fetchCouponTypeOptions } from '../../../api/admin.js';
+import {
+  fetchCouponEventTriggers,
+  fetchCouponType,
+  fetchCouponTypeOptions,
+} from '../../../api/admin.js';
 import { ErrorState } from '../../../shared/components/AsyncState.jsx';
 
 const EMPTY_ITEM = {
@@ -19,9 +23,18 @@ function createFormItem(value = {}) {
   };
 }
 
+/**
+ * 테스트 전용으로 예약한 경기 ID. 백엔드 CouponTestMatch.SAMPLE_MATCH_ID 와 같아야 한다.
+ *
+ * replay 재생은 실행할 때마다 경기 ID 를 새로 만들어 실제 경기에 이벤트를 미리
+ * 걸어둘 수 없다. 그래서 고정된 이 ID 로 만들어 두고 재생 중 트리거가 이 ID 로 열린다.
+ */
+const SAMPLE_MATCH_ID = -1;
+
 function toFormValue(value) {
   if (!value) {
     return {
+      isTest: false,
       esportsMatchId: '',
       eventName: '',
       issueMode: 'SINGLE_FIRST_COME',
@@ -31,7 +44,10 @@ function toFormValue(value) {
     };
   }
   return {
-    esportsMatchId: value.esportsMatchId ?? '',
+    isTest: value.esportsMatchId === SAMPLE_MATCH_ID,
+    esportsMatchId: value.esportsMatchId === SAMPLE_MATCH_ID
+      ? ''
+      : value.esportsMatchId ?? '',
     eventName: value.eventName ?? '',
     issueMode: value.issueMode ?? 'SINGLE_FIRST_COME',
     triggerType: value.triggerType ?? '',
@@ -55,6 +71,7 @@ function formatCouponTypeOption(couponType) {
 export default function CouponEventForm({ initialValue, onSubmit, submitting, submitLabel }) {
   const [form, setForm] = useState(() => toFormValue(initialValue));
   const [validationError, setValidationError] = useState(null);
+  const [triggers, setTriggers] = useState([]);
   const [couponTypes, setCouponTypes] = useState([]);
   const [selectedCouponTypes, setSelectedCouponTypes] = useState({});
   const [couponTypeKeyword, setCouponTypeKeyword] = useState('');
@@ -66,6 +83,15 @@ export default function CouponEventForm({ initialValue, onSubmit, submitting, su
   useEffect(() => {
     setForm(toFormValue(initialValue));
   }, [initialValue]);
+
+  // 트리거 목록은 서버가 가진 것이 기준이다 — 늘어나도 프론트를 고치지 않는다
+  useEffect(() => {
+    let cancelled = false;
+    fetchCouponEventTriggers()
+      .then((list) => { if (!cancelled) setTriggers(list ?? []); })
+      .catch(() => { if (!cancelled) setTriggers([]); });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const selectedIds = (initialValue?.items ?? [])
@@ -155,7 +181,8 @@ export default function CouponEventForm({ initialValue, onSubmit, submitting, su
     event.preventDefault();
     setValidationError(null);
     const payload = {
-      esportsMatchId: Number(form.esportsMatchId),
+      // 테스트 이벤트는 실제 경기가 없으므로 예약 ID 로 보낸다
+      esportsMatchId: form.isTest ? SAMPLE_MATCH_ID : Number(form.esportsMatchId),
       eventName: form.eventName.trim(),
       issueMode: form.issueMode,
       triggerType: form.triggerType.trim(),
@@ -191,11 +218,29 @@ export default function CouponEventForm({ initialValue, onSubmit, submitting, su
           <input
             type="number"
             min="1"
-            required
-            value={form.esportsMatchId}
+            required={!form.isTest}
+            disabled={form.isTest}
+            value={form.isTest ? '' : form.esportsMatchId}
             onChange={(event) => update('esportsMatchId', event.target.value)}
+            placeholder={form.isTest ? '테스트 이벤트는 경기 번호가 필요 없습니다' : ''}
           />
-          <small>이벤트가 연결될 esports match ID</small>
+          <small>
+            {form.isTest
+              ? '테스트 재생 중 트리거가 감지되면 이 이벤트가 열립니다'
+              : '이벤트를 적용할 경기의 번호'}
+          </small>
+        </label>
+        <label className="field-block checkbox-field">
+          <span>테스트 이벤트</span>
+          <input
+            type="checkbox"
+            checked={form.isTest}
+            onChange={(event) => update('isTest', event.target.checked)}
+          />
+          <small>
+            실제 경기 없이 테스트 재생으로 시연합니다. 재생할 때마다 경기 번호가
+            새로 만들어져 실제 경기로는 미리 등록할 수 없습니다.
+          </small>
         </label>
         <label className="field-block">
           <span>이벤트 이름</span>
@@ -231,20 +276,25 @@ export default function CouponEventForm({ initialValue, onSubmit, submitting, su
 
       <label className="field-block">
         <span>트리거 종류</span>
-        <input
-          type="text"
+        <select
           required
-          list="trigger-type-options"
           value={form.triggerType}
           onChange={(event) => update('triggerType', event.target.value)}
-        />
-        <datalist id="trigger-type-options">
-          <option value="FIRST_BARON_KILL" />
-          {/* CLUTCH-216: 백엔드에서 날짜와 당일 순번을 붙여 저장하는 수동 테스트 트리거 */}
-          <option value="MANUAL_TEST" />
-        </datalist>
+        >
+          {/* 저장된 값이 목록에 없을 수 있다(과거 자유 입력) — 지워지지 않게 남겨둔다 */}
+          {form.triggerType
+            && !triggers.some((t) => t.value === form.triggerType) && (
+              <option value={form.triggerType}>{form.triggerType}</option>
+            )}
+          {triggers.map((trigger) => (
+            <option key={trigger.value} value={trigger.value}>
+              {trigger.label} ({trigger.value})
+            </option>
+          ))}
+        </select>
         <small>
-          자동 감지 트리거를 선택하거나, 수동 테스트는 MANUAL_TEST를 선택해 주세요.
+          경기 중 이 사건이 감지되면 이벤트가 열립니다.
+          수동 테스트는 MANUAL_TEST 를 선택해 주세요.
         </small>
       </label>
 

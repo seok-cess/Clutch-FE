@@ -26,6 +26,37 @@ export const deleteCouponEvent = (couponEventId) => requestJson(
   { method: 'DELETE' },
 );
 
+/** 선택 가능한 트리거 종류. 값을 프론트에 복사해두면 늘어날 때 양쪽을 고쳐야 해 서버가 준다 */
+export const fetchCouponEventTriggers = () => requestJson(
+  '/api/v1/admin/coupon-events/triggers',
+);
+
+/**
+ * 경기 트리거로 이벤트를 연다.
+ *
+ * 이벤트 ID 를 넘기지 않는다 — 감지하는 쪽은 어떤 이벤트가 이 트리거를
+ * 기다리는지 모르기 때문이다. 서버가 (경기, 트리거) 로 찾아 연다.
+ *
+ * 경기 ID 는 필수다. 없으면 서버가 트리거만 보고 아무 경기의 이벤트나 열어
+ * 전혀 다른 경기가 발동한다.
+ *
+ * 조건에 맞는 이벤트가 없으면 204 라 응답이 비어 있다.
+ */
+export function openCouponEventByTrigger({
+  trigger, esportsMatchId, gameId, gameTimeSeconds,
+}) {
+  const params = new URLSearchParams({
+    trigger,
+    esportsMatchId: String(esportsMatchId),
+  });
+  if (gameId) params.set('gameId', gameId);
+  if (gameTimeSeconds != null) params.set('gameTimeSeconds', String(gameTimeSeconds));
+  return requestJson(`/api/v1/admin/coupon-events/occurrences/trigger?${params}`, {
+    method: 'POST',
+    fallbackMessage: '트리거로 쿠폰 이벤트를 열지 못했습니다.',
+  });
+}
+
 export const manualOpenCouponEvent = (couponEventId) => requestJson(
   `/api/v1/admin/coupon-events/${encodeURIComponent(couponEventId)}/occurrences/manual-open`,
   {
@@ -102,6 +133,17 @@ export function fetchCouponClaimHistory(adminId, {
   if (cursor) params.set('cursor', String(cursor));
   return requestAsAdmin(`/api/v1/admin/coupon-claims?${params}`, adminId);
 }
+
+/**
+ * 시연·테스트로 생긴 회차와 발급 이력을 지우고 이벤트를 READY 로 되돌린다.
+ *
+ * 이벤트 정의는 남아 같은 설정으로 바로 다시 시연할 수 있다.
+ * 일반 삭제는 이력이 있으면 막혀 반복 시연에는 쓸 수 없다.
+ */
+export const resetCouponEventForTest = (couponEventId) => requestJson(
+  `/api/v1/admin/coupon-events/${encodeURIComponent(couponEventId)}/test-reset`,
+  { method: 'POST', fallbackMessage: '테스트 이력을 초기화하지 못했습니다.' },
+);
 
 export const fetchBackfillStatus = () => requestJson('/api/admin/backfill/status');
 
