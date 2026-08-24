@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchScoreboard, fetchDetails, fetchHistory } from '../api.js';
+import { fetchScoreboard, fetchDetails, fetchHistory, fetchReplayStatus } from '../api.js';
 import Scoreboard from './Scoreboard.jsx';
 import DetailsTable from './DetailsTable.jsx';
 import GoldChart from './GoldChart.jsx';
@@ -23,12 +23,18 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
   const [details, setDetails] = useState(null);
   const [history, setHistory] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const [displayGameTime, setDisplayGameTime] = useState(null);
+  const [replaySpeed, setReplaySpeed] = useState(1);
 
   useEffect(() => {
     // 소스가 통계를 주지 않는 세트는 호출해봐야 계속 404 다 — 아예 요청하지 않는다
     if (!gameId || statsUnavailable) return;
     let cancelled = false;
     setLoaded(false);
+    setBoard(null);
+    setDetails(null);
+    setHistory(null);
+    setDisplayGameTime(null);
 
     if (previewData) {
       setBoard(previewData.board);
@@ -75,6 +81,44 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
     return () => { cancelled = true; };
   }, [gameId, live, previewData, previewTicks, statsUnavailable]);
 
+  // 피드 프레임은 1초보다 촘촘하지 않을 수 있다. 화면 시계는 마지막 프레임보다
+  // 되감지 않도록 직접 진행하고, test 재생 중에는 현재 선택한 배속만큼 올린다.
+  useEffect(() => {
+    const serverTime = board?.gameTimeSeconds;
+    if (serverTime == null) return undefined;
+    let cancelled = false;
+
+    const syncClock = async () => {
+      let speed = 1;
+      if (live) {
+        try {
+          const replay = await fetchReplayStatus();
+          if (Number.isFinite(replay?.speed) && replay.speed > 0) {
+            speed = replay.speed;
+          }
+        } catch {
+          // 실제 API 모드에는 replay 제어 API가 없으므로 일반 1초 시계로 표시한다.
+        }
+      }
+      if (cancelled) return;
+      setReplaySpeed(speed);
+      setDisplayGameTime((current) => Math.max(current ?? serverTime, serverTime));
+    };
+
+    syncClock();
+    return () => { cancelled = true; };
+  }, [board?.gameTimeSeconds, live]);
+
+  useEffect(() => {
+    if (!live || board?.gameTimeSeconds == null || finished || board.gameState === 'finished') {
+      return undefined;
+    }
+    const timer = window.setInterval(() => {
+      setDisplayGameTime((current) => (current ?? board.gameTimeSeconds) + replaySpeed);
+    }, POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [board?.gameState, board?.gameTimeSeconds, finished, live, replaySpeed]);
+
   if (!gameId) return null;
   if (statsUnavailable) {
     return (
@@ -98,7 +142,7 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
     <>
       {board.gameTimeSeconds != null && (
         <div className={`game-clock ${isFinished ? 'ended' : ''}`}>
-          {formatClock(board.gameTimeSeconds)}
+          {formatClock(displayGameTime ?? board.gameTimeSeconds)}
           {/* 종료 후에는 시계가 멈춘다. 멈춘 게 아니라 끝난 것임을 명시한다 */}
           {isFinished && <span className="clock-note">세트 종료</span>}
         </div>

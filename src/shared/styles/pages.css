@@ -310,6 +310,222 @@
   margin-top: 20px;
 }
 
+.external-source-control {
+  display: grid;
+  gap: 22px;
+}
+
+.source-status-surface,
+.source-warning-surface,
+.replay-admin-surface {
+  padding: 24px;
+}
+
+.source-status-detail {
+  margin-top: 20px;
+}
+
+.source-switch-actions,
+.replay-admin-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--app-line-soft);
+}
+
+.source-warning-surface {
+  border-color: rgba(217, 164, 65, 0.36);
+  background: rgba(217, 164, 65, 0.05);
+}
+
+.source-warning-surface h2 {
+  margin: 0;
+  color: #efc46c;
+  font-size: 1rem;
+}
+
+.source-warning-surface p {
+  margin: 8px 0 0;
+  color: var(--app-text-muted);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.replay-progress {
+  width: min(520px, 100%);
+  margin-top: 14px;
+}
+
+.replay-identifiers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.replay-identifier {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid rgba(130, 143, 163, 0.28);
+  border-radius: 6px;
+  background: rgba(8, 13, 19, 0.32);
+}
+
+.replay-identifier > span {
+  color: var(--app-text-muted);
+  font-size: 0.76rem;
+}
+
+.replay-identifier code {
+  overflow-wrap: anywhere;
+  color: #e9eff7;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.replay-identifier small {
+  color: var(--app-text-faint);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.replay-progress-copy {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
+}
+
+.replay-progress-copy strong {
+  color: #e9eff7;
+  font-variant-numeric: tabular-nums;
+}
+
+.replay-progress-track {
+  overflow: hidden;
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: rgba(174, 181, 194, 0.25);
+}
+
+.replay-progress-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #52adff;
+  transition: width 180ms linear;
+}
+
+.replay-speed-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
+}
+
+.replay-speed-select select {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1px solid rgba(82, 173, 255, 0.5);
+  border-radius: 5px;
+  background: #111820;
+  color: #e9eff7;
+}
+
+.source-action-hint {
+  margin: 14px 0 0;
+  color: var(--app-text-faint);
+  font-size: 0.82rem;
+}
+
+.text-button {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--app-blue);
+  text-decoration: underline;
+}
+
+.operator-confirm-backdrop {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.66);
+}
+
+.operator-confirm-dialog {
+  width: min(100%, 520px);
+  padding: 28px;
+  border: 1px solid rgba(217, 164, 65, 0.46);
+  border-radius: var(--app-radius);
+  background: var(--app-bg-raised);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.operator-confirm-dialog h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.operator-confirm-dialog p {
+  margin: 14px 0 0;
+  color: var(--app-text-muted);
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+.operator-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+@media (max-width: 640px) {
+  .source-switch-actions,
+  .replay-admin-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .source-switch-actions button,
+  .replay-admin-actions .button-primary {
+    width: 100%;
+  }
+
+  .replay-speed-select {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .replay-identifiers {
+    grid-template-columns: 1fr;
+  }
+
+  .operator-confirm-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .operator-confirm-actions button {
+    width: 100%;
+  }
+}
+
 .page-live .live-action-grid {
   gap: 16px;
   margin-top: 24px;
@@ -1037,4 +1253,3 @@
   background: var(--app-blue);
   transition: width 0.2s linear;
 }
-

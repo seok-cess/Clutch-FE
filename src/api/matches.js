@@ -32,10 +32,16 @@ export const fetchDetails = (gameId, lag) => requestJson(
   `/api/live/${encodeURIComponent(gameId)}/details${lag != null ? `?lag=${lag}` : ''}`,
   { allowNotFound: true },
 );
-export const fetchHistory = (gameId, lag, step = 10) => requestJson(
-  `/api/live/${encodeURIComponent(gameId)}/history?step=${step}${lag != null ? `&lag=${lag}` : ''}`,
-  { allowNotFound: true },
-);
+export const fetchHistory = (gameId, lag, step) => {
+  const params = new URLSearchParams();
+  if (step != null) params.set('step', String(step));
+  if (lag != null) params.set('lag', String(lag));
+  const query = params.toString();
+  return requestJson(
+    `/api/live/${encodeURIComponent(gameId)}/history${query ? `?${query}` : ''}`,
+    { allowNotFound: true },
+  );
+};
 export const fetchRecentForm = () => requestJson('/api/records/recent', { allowNotFound: true });
 export const fetchHeadToHead = (firstTeam, secondTeam) => requestJson(
   `/api/records/h2h?a=${encodeURIComponent(firstTeam)}&b=${encodeURIComponent(secondTeam)}`,
