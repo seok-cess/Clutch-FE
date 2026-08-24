@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
-import { fetchScoreboard, fetchDetails, fetchHistory, fetchReplayStatus } from '../api.js';
+import {
+  fetchExternalSourceStatus,
+  fetchScoreboard,
+  fetchDetails,
+  fetchHistory,
+  fetchReplayStatus,
+} from '../api.js';
 import Scoreboard from './Scoreboard.jsx';
 import DetailsTable from './DetailsTable.jsx';
 import GoldChart from './GoldChart.jsx';
 
 const POLL_MS = 1000;
+const SOURCE_POLL_MS = 2000;
 
 /** 초 → "24:35" (게임 시계 표기) */
 function formatClock(sec) {
@@ -25,6 +32,34 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
   const [loaded, setLoaded] = useState(false);
   const [displayGameTime, setDisplayGameTime] = useState(null);
   const [replaySpeed, setReplaySpeed] = useState(1);
+  const [sourceMode, setSourceMode] = useState(null);
+
+  // 실제 API와 test 재생은 같은 1초 폴링을 써도 시간축이 다르다.
+  // replay 배속은 STUB일 때만 화면 시계에 적용한다.
+  useEffect(() => {
+    if (!live) {
+      setSourceMode(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const loadSourceMode = async () => {
+      try {
+        const source = await fetchExternalSourceStatus();
+        if (!cancelled) setSourceMode(source?.mode ?? 'REAL');
+      } catch {
+        // 소스 상태를 확인하지 못하면 실제 경기 시계처럼 1배속으로 안전하게 표시한다.
+        if (!cancelled) setSourceMode('REAL');
+      }
+    };
+
+    loadSourceMode();
+    const timer = window.setInterval(loadSourceMode, SOURCE_POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [live]);
 
   useEffect(() => {
     // 소스가 통계를 주지 않는 세트는 호출해봐야 계속 404 다 — 아예 요청하지 않는다
@@ -82,7 +117,7 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
   }, [gameId, live, previewData, previewTicks, statsUnavailable]);
 
   // 피드 프레임은 1초보다 촘촘하지 않을 수 있다. 화면 시계는 마지막 프레임보다
-  // 되감지 않도록 직접 진행하고, test 재생 중에는 현재 선택한 배속만큼 올린다.
+  // 되감지 않도록 직접 진행하고, test 재생 중에만 현재 선택한 배속만큼 올린다.
   useEffect(() => {
     const serverTime = board?.gameTimeSeconds;
     if (serverTime == null) return undefined;
@@ -90,14 +125,14 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
 
     const syncClock = async () => {
       let speed = 1;
-      if (live) {
+      if (live && sourceMode === 'STUB') {
         try {
           const replay = await fetchReplayStatus();
           if (Number.isFinite(replay?.speed) && replay.speed > 0) {
             speed = replay.speed;
           }
         } catch {
-          // 실제 API 모드에는 replay 제어 API가 없으므로 일반 1초 시계로 표시한다.
+          // replay 상태를 읽지 못해도 1배속으로 표시한다.
         }
       }
       if (cancelled) return;
@@ -107,7 +142,15 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
 
     syncClock();
     return () => { cancelled = true; };
-  }, [board?.gameTimeSeconds, live]);
+  }, [board?.gameTimeSeconds, live, sourceMode]);
+
+  // test 재생에서 실제 API로 돌아오면 이전 배속으로 앞서간 표시 시계를 즉시 버린다.
+  useEffect(() => {
+    if (sourceMode === 'REAL') {
+      setReplaySpeed(1);
+      setDisplayGameTime(board?.gameTimeSeconds ?? null);
+    }
+  }, [sourceMode]);
 
   useEffect(() => {
     if (!live || board?.gameTimeSeconds == null || finished || board.gameState === 'finished') {
