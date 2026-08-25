@@ -100,7 +100,9 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
         ]);
         if (cancelled) return;
         if (b) setBoard(b);
-        if (d) setDetails(d);
+        // 새 세트의 details 프레임이 아직 없을 때 이전 세트 값이 남아 있으면
+        // 상세 스탯이 멈춘 것처럼 보인다. null도 현재 게임의 상태로 반영한다.
+        setDetails(d ?? null);
         if (h) setHistory(h);
         setLoaded(true);
       } catch {

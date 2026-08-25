@@ -359,7 +359,7 @@ body {
 
 .my-bet-table {
   width: 100%;
-  min-width: 900px;
+  min-width: 1120px;
   border-collapse: collapse;
   font-size: 0.82rem;
 }
@@ -385,12 +385,43 @@ body {
 }
 
 .my-bet-pick,
-.my-bet-status.won {
+.my-bet-status.won,
+.my-bet-odds.confirmed,
+.my-bet-settlement.win strong {
   color: var(--steel) !important;
 }
 
 .my-bet-status.lost {
   color: var(--team-red);
+}
+
+.my-bet-odds.estimated {
+  color: var(--muted-read);
+}
+
+.my-bet-settlement strong,
+.my-bet-settlement small {
+  display: block;
+}
+
+.my-bet-settlement strong {
+  color: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.my-bet-settlement small {
+  margin-top: 3px;
+  color: var(--steel);
+  font-size: 0.72rem;
+}
+
+.my-bet-settlement.loss strong {
+  color: var(--team-red);
+}
+
+.my-bet-settlement.neutral small {
+  color: var(--muted-read);
 }
 
 .my-page-empty,
