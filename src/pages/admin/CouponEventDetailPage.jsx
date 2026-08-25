@@ -4,12 +4,18 @@ import {
   deleteCouponEvent,
   fetchCouponEvent,
   fetchCouponType,
-  manualOpenCouponEvent,
+  resetCouponEventForTest,
 } from '../../api/admin.js';
 import { ErrorState, LoadingState } from '../../shared/components/AsyncState.jsx';
 import PageHeader from '../../shared/components/PageHeader.jsx';
 import StatusBadge from '../../shared/components/StatusBadge.jsx';
 import { formatDateTime, formatNumber } from '../../shared/utils/format.js';
+
+/**
+ * 테스트 전용으로 예약한 경기 ID. 백엔드 CouponTestMatch.SAMPLE_MATCH_ID 와 같아야 한다.
+ * replay 재생은 실행마다 경기 ID 가 달라져 실제 경기에 이벤트를 미리 걸 수 없다.
+ */
+export const SAMPLE_MATCH_ID = -1;
 
 const MODE_LABEL = {
   SINGLE_FIRST_COME: '단일 선착순',
@@ -30,7 +36,6 @@ export default function CouponEventDetailPage() {
   const [couponTypes, setCouponTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
-  const [opening, setOpening] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
 
@@ -64,32 +69,36 @@ export default function CouponEventDetailPage() {
     }
   };
 
-  const manualOpen = async () => {
-    if (!window.confirm('이 쿠폰 이벤트를 테스트용으로 오픈할까요?')) return;
+  const [resetting, setResetting] = useState(false);
 
-    setOpening(true);
+  /*
+   * 시연을 반복하려면 이번에 생긴 회차와 발급 이력을 지워야 한다.
+   * 일반 삭제는 이력이 있으면 막히고, 이벤트 정의까지 사라져 다시 만들어야 한다.
+   */
+  const resetForTest = async () => {
+    if (!window.confirm(
+      '이 이벤트의 회차와 발급 이력을 모두 지우고 READY 로 되돌릴까요? '
+      + '이벤트 설정(항목·단계)은 그대로 남습니다.',
+    )) return;
+
+    setResetting(true);
     setError(null);
     setNotice(null);
     try {
-      await manualOpenCouponEvent(couponEventId);
+      const deleted = await resetCouponEventForTest(couponEventId);
       const refreshedEvent = await fetchCouponEvent(couponEventId);
       setEvent(refreshedEvent);
-      setNotice('테스트 회차가 열렸습니다. 최근 회차 정보를 갱신했습니다.');
+      setNotice(
+        `초기화했습니다 — 쿠폰 ${deleted.userCoupon}건, `
+        + `발급 요청 ${deleted.claimRequest}건, 회차 ${deleted.occurrence}건 삭제`,
+      );
     } catch (requestError) {
       setError(requestError.message);
     } finally {
-      setOpening(false);
+      setResetting(false);
     }
   };
 
-  const isOpen = event?.eventStatus === 'OPEN';
-  const canManualOpen = event?.eventStatus === 'READY'
-    && Number(event?.remainingQuantity) > 0;
-  const manualOpenLabel = opening
-    ? '오픈 중'
-    : isOpen
-      ? '테스트 진행 중'
-      : '쿠폰 발급 테스트';
   const couponTypeById = useMemo(() => new Map(
     couponTypes.map((couponType) => [String(couponType.couponTypeId), couponType]),
   ), [couponTypes]);
@@ -102,15 +111,16 @@ export default function CouponEventDetailPage() {
         actions={event && (
           <>
             <button
-              className="button-primary"
+              className="button-secondary"
               type="button"
-              onClick={manualOpen}
-              disabled={opening || deleting || !canManualOpen}
+              onClick={resetForTest}
+              disabled={resetting || deleting}
+              title="회차와 발급 이력을 지우고 다시 시연할 수 있게 되돌립니다"
             >
-              {manualOpenLabel}
+              {resetting ? '초기화 중' : '테스트 초기화'}
             </button>
             <NavLink className="button-secondary" to={`/admin/coupon-events/${couponEventId}/edit`}>수정</NavLink>
-            <button className="button-danger" type="button" onClick={remove} disabled={deleting || opening}>
+            <button className="button-danger" type="button" onClick={remove} disabled={deleting || resetting}>
               {deleting ? '삭제 중' : '삭제'}
             </button>
           </>
@@ -126,7 +136,14 @@ export default function CouponEventDetailPage() {
               <span>이벤트 ID {event.couponEventId}</span>
             </div>
             <dl className="detail-grid">
-              <div><dt>경기 ID</dt><dd>{event.esportsMatchId}</dd></div>
+              <div>
+                <dt>경기 ID</dt>
+                <dd>
+                  {event.esportsMatchId === SAMPLE_MATCH_ID
+                    ? '테스트 경기 (재생 시연용)'
+                    : event.esportsMatchId}
+                </dd>
+              </div>
               <div><dt>트리거</dt><dd>{event.triggerType}</dd></div>
               <div><dt>발급 방식</dt><dd>{MODE_LABEL[event.issueMode] ?? event.issueMode}</dd></div>
               <div><dt>신청 시간</dt><dd>{event.claimWindowSeconds}초</dd></div>

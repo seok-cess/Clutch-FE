@@ -1,169 +1,140 @@
 /**
- * 시연·테스트용 더미 경기 데이터.
+ * 시연·테스트용 샘플 경기.
  *
  * 실제 소스가 없어도 화면 전체를 움직여 보기 위한 것이다.
- * 저장된 과거 경기로는 골드·킬만 시점별로 재생할 수 있고 선수 기록은
- * 최종값 한 벌뿐이라(게임당 10행) 시점별 재현이 불가능하다.
- * 그래서 여기서는 모든 지표를 경과 시간의 함수로 생성한다.
+ * 2026-08-15 GEN vs T1(12주 차)의 적재 기록을 그대로 재생한다 — 골드·킬 추이와
+ * 오브젝트 획득 시각은 그날의 실제 값이다.
+ *
+ * 두 가지는 실제와 다르다.
+ *  - 선수 지표는 세트당 최종값 한 벌만 적재돼(V4) 시점별 재현이 불가능하다.
+ *    그래서 킬·데스·어시스트만 팀 추이에 맞춰 비례 배분하고 나머지는 최종값을 쓴다.
+ *  - 펜타킬 UI 를 시연하기 위해 36분 14초에 펜타킬을 넣었다. 실제로는 없었던
+ *    기록이며, 팀 킬 합계와 골드도 함께 올려 앞뒤가 맞게 조정했다.
  *
  * 서버 호출이 없으므로 소스 상태와 무관하게 항상 동작한다.
  */
+import data from './sampleGameData.json';
 
-/** 시연 기준 한 세트 길이 (초) */
-export const SAMPLE_DURATION = 30 * 60;
+/** 시연 기준 한 세트 길이 (초) — 원본 경기 길이 그대로 */
+export const SAMPLE_DURATION = data.durationSeconds;
 
-const BLUE_TEAM_ID = 'sample-blue';
-const RED_TEAM_ID = 'sample-red';
-
-export const SAMPLE_TEAMS = [
-  { id: BLUE_TEAM_ID, code: 'BLU', name: 'Sample Blue', image: null },
-  { id: RED_TEAM_ID, code: 'RED', name: 'Sample Red', image: null },
-];
-
-/** 선수 5명 — 라인별 성장 속도가 다르게 보이도록 계수를 다르게 둔다 */
-const ROSTER = {
-  blue: [
-    { no: 1, name: 'BLU Top', champ: 'Rumble', role: 'top', csRate: 7.4, killShare: 0.18 },
-    { no: 2, name: 'BLU Jgl', champ: 'XinZhao', role: 'jungle', csRate: 5.1, killShare: 0.22 },
-    { no: 3, name: 'BLU Mid', champ: 'Ryze', role: 'mid', csRate: 8.2, killShare: 0.26 },
-    { no: 4, name: 'BLU Bot', champ: 'Jhin', role: 'bottom', csRate: 9.1, killShare: 0.28 },
-    { no: 5, name: 'BLU Sup', champ: 'Pantheon', role: 'support', csRate: 1.2, killShare: 0.06 },
-  ],
-  red: [
-    { no: 6, name: 'RED Top', champ: 'Ambessa', role: 'top', csRate: 7.1, killShare: 0.19 },
-    { no: 7, name: 'RED Jgl', champ: 'JarvanIV', role: 'jungle', csRate: 4.9, killShare: 0.21 },
-    { no: 8, name: 'RED Mid', champ: 'Ryze', role: 'mid', csRate: 8.0, killShare: 0.25 },
-    { no: 9, name: 'RED Bot', champ: 'Ezreal', role: 'bottom', csRate: 8.8, killShare: 0.29 },
-    { no: 10, name: 'RED Sup', champ: 'Pantheon', role: 'support', csRate: 1.1, killShare: 0.06 },
-  ],
-};
+/** 이 샘플이 쓰는 세트 식별자. 트리거 중복 방지 키에 들어간다 */
+export const SAMPLE_GAME_ID = data.gameId;
 
 /**
- * 아이템·룬은 Data Dragon 실제 id 를 쓴다 — 그래야 아이콘이 CDN 에서 뜬다.
- * 라인별로 실제로 갈 법한 구성을 골라 시연이 그럴듯해 보이게 한다.
+ * 샘플 재생이 쿠폰 트리거를 걸 경기(내부 PK).
+ *
+ * 백엔드 CouponTestMatch.SAMPLE_MATCH_ID 와 같아야 한다. V15 마이그레이션이 이 ID 로
+ * 실제 esports_match 행을 만들어 두므로, 관리자 화면에서 "테스트 이벤트" 로 만든
+ * 쿠폰 이벤트가 이 경기에 매달린다.
+ *
+ * 경기를 반드시 지정해서 보낸다. 경기 없이 보내면 서버가 트리거만 보고 아무 경기의
+ * 이벤트나 열어 진짜 경기의 쿠폰이 풀린다.
  */
-const ITEM_BUILDS = {
-  top:      [3068, 3075, 3047, 3065, 3193, 1054],
-  jungle:   [6692, 3142, 3179, 3111, 6333, 2055],
-  mid:      [6655, 3157, 4645, 3020, 3089, 2003],
-  bottom:   [6672, 3094, 3033, 3006, 3072, 2003],
-  support:  [3860, 3222, 3011, 3107, 4643, 2055],
-};
+export const SAMPLE_MATCH_ID = -1;
 
-/** 룬 — 첫 값이 키스톤 */
-const PERK_SETS = {
-  top:      [8010, 9111, 9104, 8014, 8446, 8451],
-  jungle:   [8010, 9111, 9105, 8299, 8143, 8135],
-  mid:      [8112, 8126, 8138, 8106, 8009, 9103],
-  bottom:   [8008, 9111, 9104, 8014, 8009, 9103],
-  support:  [8465, 8463, 8473, 8242, 8306, 8316],
-};
+/** 펜타킬 발생 시각. 화면에서 연출 시점을 잡는 데 쓴다 */
+export const SAMPLE_PENTAKILL = data.pentakill;
 
-/** 0~1 사이를 오가는 결정적 흔들림 — 매번 같은 그래프가 나와야 시연이 재현된다 */
-function wobble(t, seed) {
-  return Math.sin(t / 190 + seed) * 0.5 + Math.sin(t / 71 + seed * 2) * 0.25;
+export const SAMPLE_TEAMS = data.teams.map((team) => ({
+  id: team.id,
+  code: team.code,
+  name: team.name,
+  image: team.image,
+}));
+
+const TIMELINE = data.timeline;
+const LAST = TIMELINE[TIMELINE.length - 1];
+
+/** t 이하의 마지막 프레임. 프레임 간격이 10초라 그 사이 값은 직전 프레임을 유지한다 */
+function frameAt(t) {
+  if (t <= TIMELINE[0].t) return TIMELINE[0];
+  if (t >= LAST.t) return LAST;
+  let low = 0;
+  let high = TIMELINE.length - 1;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    if (TIMELINE[mid].t <= t) low = mid;
+    else high = mid - 1;
+  }
+  return TIMELINE[low];
 }
 
-/** 경과 t 초 시점의 팀 총 골드 */
-function goldAt(t, side) {
-  const base = 2500 + t * 13.2;              // 시간에 비례한 기본 수급
-  const lead = side === 'blue' ? 1 : -1;
-  // 초반 균형 → 중반 블루 리드 → 후반 좁혀짐
-  const swing = Math.sin((t / SAMPLE_DURATION) * Math.PI) * 3200;
-  return Math.round(base + lead * (swing * 0.5 + wobble(t, 1.3) * 900));
-}
-
-/** 경과 t 초 시점의 팀 킬 — 단조 증가여야 한다 (되돌아가면 안 된다) */
-function killsAt(t, side) {
-  if (t <= 0) return 0;               // 시작 시점은 반드시 0:0
-  const pace = side === 'blue' ? 0.0092 : 0.0074;
-  const seed = side === 'blue' ? 0 : 2;
-  // 초반 흔들림이 음수로 튀지 않도록 t 에 비례해 서서히 키운다
-  const jitter = Math.sin(t / 240 + seed) * 1.4 * Math.min(1, t / 300);
-  return Math.max(0, Math.floor(t * pace + jitter));
-}
-
-/** 오브젝트는 시각이 고정이어야 그래프 마커가 흔들리지 않는다 */
-const OBJECTIVES = [
-  { gameTimeSeconds: 312, side: 'blue', type: 'dragon', subtype: 'ocean' },
-  { gameTimeSeconds: 428, side: 'red', type: 'tower', subtype: null },
-  { gameTimeSeconds: 655, side: 'blue', type: 'tower', subtype: null },
-  { gameTimeSeconds: 902, side: 'blue', type: 'dragon', subtype: 'infernal' },
-  { gameTimeSeconds: 1130, side: 'red', type: 'dragon', subtype: 'mountain' },
-  { gameTimeSeconds: 1245, side: 'blue', type: 'baron', subtype: null },
-  { gameTimeSeconds: 1310, side: 'blue', type: 'tower', subtype: null },
-  { gameTimeSeconds: 1495, side: 'red', type: 'tower', subtype: null },
-  { gameTimeSeconds: 1620, side: 'blue', type: 'dragon', subtype: 'cloud' },
-  { gameTimeSeconds: 1702, side: 'blue', type: 'inhibitor', subtype: null },
-];
-
-/** t 초까지 발생한 오브젝트만 */
+/** t 까지 획득한 오브젝트만 */
 function objectivesUntil(t) {
-  return OBJECTIVES.filter((o) => o.gameTimeSeconds <= t);
+  return data.objectives.filter((o) => o.gameTimeSeconds <= t);
 }
 
-function countObj(t, side, type) {
+function countObjective(t, side, type) {
   return objectivesUntil(t).filter((o) => o.side === side && o.type === type).length;
 }
 
+/** 용은 종류가 툴팁에 필요해 배열로 준다 */
 function dragonsOf(t, side) {
   return objectivesUntil(t)
     .filter((o) => o.side === side && o.type === 'dragon')
-    .map((o) => o.subtype);
+    .map((o) => o.subtype)
+    .filter(Boolean);
 }
 
-/** 한 선수의 t 초 시점 기록 */
-function playerAt(t, p, side, teamKills) {
-  const min = t / 60;
-  const kills = Math.floor(teamKills * p.killShare);
-  const deaths = Math.max(0, Math.floor(min * 0.11 + wobble(t, p.no) * 0.8));
-  const assists = Math.floor(teamKills * 0.42);
-  const gold = Math.round(500 + min * (280 + p.csRate * 22));
+/**
+ * 선수 지표를 t 시점으로 환산한다.
+ *
+ * 킬·데스·어시스트는 팀 추이가 있으므로 그 비율로 나눈다. CS·레벨·골드는
+ * 최종값밖에 없어 경과 비율로 선형 추정한다 — 실제 성장 곡선과 다르지만
+ * 시연에서 "값이 멈춰 있는" 것보다 자연스럽다.
+ */
+function playerAt(t, player, teamKillsNow, teamKillsFinal) {
+  const ratio = SAMPLE_DURATION === 0 ? 1 : Math.min(1, t / SAMPLE_DURATION);
+  const killRatio = teamKillsFinal === 0 ? ratio : teamKillsNow / teamKillsFinal;
 
-  // 아이템은 골드에 비례해 하나씩 늘어난다 — 6칸을 채우면 완성
-  const itemCount = Math.min(6, Math.floor(gold / 2600));
-  // 룬은 게임 시작 시 확정이므로 시간과 무관하게 전부 보여준다
-  const perks = PERK_SETS[p.role] ?? [];
+  // 펜타킬 킬은 시각별로 하나씩 붙는다 — 아직 안 지난 킬은 빼둬야 순차로 오른다.
+  //
+  // 주입한 5킬에는 killRatio 를 곱하지 않는다. 곱하면 팀 킬 비율(0.5 안팎)만큼
+  // 깎여 화면에도 서버 감지기에도 3킬쯤으로만 보인다 — 펜타킬이 성립하지 않는다.
+  // 비율은 펜타킬을 뺀 나머지 킬에만 적용하고, 주입분은 그대로 더한다.
+  const isPentaPlayer = player.no === SAMPLE_PENTAKILL.participantNo;
+  const pentaGot = isPentaPlayer
+    ? SAMPLE_PENTAKILL.killTimes.filter((killAt) => killAt <= t).length
+    : 0;
+  const kills = isPentaPlayer
+    ? Math.round((player.kills - 5) * killRatio) + pentaGot
+    : Math.round(player.kills * killRatio);
 
   return {
-    participantId: p.no,
-    summonerName: p.name,
-    championId: p.champ,
-    role: p.role,
-    level: Math.min(18, Math.max(1, Math.floor(1 + min * 0.55))),
+    participantId: player.no,
+    summonerName: player.name,
+    championId: player.champion,
+    role: player.role,
+    level: Math.max(1, Math.round(player.level * ratio)),
     kills,
-    deaths,
-    assists,
-    creepScore: Math.floor(min * p.csRate),
-    totalGold: gold,
-    currentHealth: null,
-    maxHealth: null,
-
-    // ---- DetailsTable 이 쓰는 상세 지표 ----
-    totalGoldEarned: gold,
-    // 딜 지분·킬 관여는 0~1 비율 (화면에서 % 로 환산한다)
-    championDamageShare: Math.min(0.42, p.killShare * 0.9 + wobble(t, p.no) * 0.03),
-    killParticipation: teamKills === 0 ? 0
-      : Math.min(0.95, (kills + assists) / Math.max(1, teamKills)),
-    wardsPlaced: Math.floor(min * (p.role === 'support' ? 1.15 : 0.32)),
-    wardsDestroyed: Math.floor(min * (p.role === 'support' ? 0.34 : 0.09)),
-    items: (ITEM_BUILDS[p.role] ?? []).slice(0, itemCount),
-    perks,
+    deaths: Math.round(player.deaths * ratio),
+    assists: Math.round(player.assists * killRatio),
+    creepScore: Math.round(player.creepScore * ratio),
+    totalGold: Math.round(player.totalGold * ratio),
+    totalGoldEarned: Math.round(player.totalGold * ratio),
+    wardsPlaced: Math.round(player.wardsPlaced * ratio),
+    wardsDestroyed: Math.round(player.wardsDestroyed * ratio),
+    items: player.items,
+    perkMetadata: player.perks,
   };
 }
 
 function teamAt(t, side) {
-  const gold = goldAt(t, side);
-  const kills = killsAt(t, side);
+  const frame = frameAt(t);
+  const gold = side === 'blue' ? frame.bg : frame.rg;
+  const kills = side === 'blue' ? frame.bk : frame.rk;
+  const finalKills = side === 'blue' ? LAST.bk : LAST.rk;
+  const roster = data.players.filter((p) => p.side === side);
+
   return {
-    esportsTeamId: side === 'blue' ? BLUE_TEAM_ID : RED_TEAM_ID,
     totalGold: gold,
     totalKills: kills,
-    towers: countObj(t, side, 'tower'),
-    inhibitors: countObj(t, side, 'inhibitor'),
-    barons: countObj(t, side, 'baron'),
+    towers: countObjective(t, side, 'tower'),
+    inhibitors: countObjective(t, side, 'inhibitor'),
+    barons: countObjective(t, side, 'baron'),
     dragons: dragonsOf(t, side),
-    participants: ROSTER[side].map((p) => playerAt(t, p, side, kills)),
+    participants: roster.map((p) => playerAt(t, p, kills, finalKills)),
   };
 }
 
@@ -172,7 +143,7 @@ export function sampleScoreboard(t) {
   const blue = teamAt(t, 'blue');
   const red = teamAt(t, 'red');
   return {
-    gameId: 'sample-game',
+    gameId: data.gameId,
     rfc460Timestamp: new Date(Date.now()).toISOString(),
     gameState: t >= SAMPLE_DURATION ? 'finished' : 'in_game',
     patchVersion: '16.16.1',
@@ -184,21 +155,18 @@ export function sampleScoreboard(t) {
 }
 
 /** /api/live/{gameId}/history 와 같은 모양 — t 까지의 추이만 준다 */
-export function sampleHistory(t, stepSeconds = 10) {
-  const points = [];
-  for (let s = 0; s <= t; s += stepSeconds) {
-    const bg = goldAt(s, 'blue');
-    const rg = goldAt(s, 'red');
-    points.push({
-      gameTimeSeconds: s,
-      goldDiff: bg - rg,
-      blueGold: bg,
-      redGold: rg,
-      blueKills: killsAt(s, 'blue'),
-      redKills: killsAt(s, 'red'),
-    });
-  }
-  return { gameId: 'sample-game', points, objectives: objectivesUntil(t) };
+export function sampleHistory(t) {
+  const points = TIMELINE
+    .filter((f) => f.t <= t)
+    .map((f) => ({
+      gameTimeSeconds: f.t,
+      goldDiff: f.bg - f.rg,
+      blueGold: f.bg,
+      redGold: f.rg,
+      blueKills: f.bk,
+      redKills: f.rk,
+    }));
+  return { gameId: data.gameId, points, objectives: objectivesUntil(t) };
 }
 
 /** /api/live/{gameId}/details 와 같은 모양 */
@@ -206,7 +174,7 @@ export function sampleDetails(t) {
   const blue = teamAt(t, 'blue');
   const red = teamAt(t, 'red');
   return {
-    gameId: 'sample-game',
+    gameId: data.gameId,
     rfc460Timestamp: new Date(Date.now()).toISOString(),
     participants: [...blue.participants, ...red.participants],
   };

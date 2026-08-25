@@ -31,7 +31,12 @@ function betLabels(bet, matches) {
 /** UTC 저장 시각을 한국 표준시(KST) 기준으로 목록에 표시한다. */
 function formatCreatedAt(createdAt) {
   if (!createdAt) return '-';
-  const date = new Date(createdAt);
+  // Spring LocalDateTime은 UTC 값이어도 오프셋 없이 직렬화될 수 있다.
+  // 오프셋이 없는 값은 UTC로 해석한 뒤 한국 시간대로 변환한다.
+  const normalized = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(createdAt)
+    ? createdAt
+    : `${createdAt}Z`;
+  const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) return '-';
   const parts = new Intl.DateTimeFormat('ko-KR', {
     timeZone: 'Asia/Seoul',

@@ -1,15 +1,36 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppData } from '../../app/AppDataProvider.jsx';
 import LiveScoreboard from '../../components/LiveScoreboard.jsx';
 import ActiveCouponClaim from '../../features/coupon/ActiveCouponClaim.jsx';
 import PageHeader from '../../shared/components/PageHeader.jsx';
+import { resetSampleFrames, sendSampleFrame } from '../../api/sampleFrame.js';
 import {
   SAMPLE_DURATION,
+  SAMPLE_GAME_ID,
+  SAMPLE_PENTAKILL,
   SAMPLE_TEAMS,
   sampleDetails,
   sampleHistory,
   sampleScoreboard,
 } from '../../shared/sample/sampleMatch.js';
+
+/**
+ * 펜타킬 지점에서 무슨 일이 있었는지 화면에 남긴다.
+ * 표시가 없으면 "왜 발급 창이 안 뜨지" 를 화면만 보고는 알 수 없다.
+ */
+const TRIGGER_MESSAGE = {
+  passed: '펜타킬 5킬이 모두 들어갔습니다. 서버 감지기가 판정합니다 —'
+    + ' 발급 창이 열리지 않으면 PENTAKILL 트리거로 등록된 대기 이벤트가 없는 것입니다.',
+  error: '프레임을 서버에 보내지 못했습니다. 감지가 시작되지 않아 쿠폰도 열리지 않습니다.',
+};
+
+/** 감지기는 참가자별 누적 킬만 본다 — 나머지 지표는 보내지 않는다 */
+function participantKills(team) {
+  return (team?.participants ?? []).map((participant) => ({
+    participantId: participant.participantId,
+    kills: participant.kills,
+  }));
+}
 
 /** 화면 갱신 주기 — 실제 라이브와 같은 1초 */
 const TICK_MS = 1000;
@@ -56,12 +77,56 @@ export default function SamplePage() {
     if (!loop && elapsed >= SAMPLE_DURATION) setPlaying(false);
   }, [loop, elapsed]);
 
+  /** 프레임을 서버로 보내지 못했는지 — 감지가 아예 시작되지 못한 상태다 */
+  const [frameError, setFrameError] = useState(false);
+  const lastElapsedRef = useRef(null);
+
   // 경과 시간이 바뀔 때만 다시 만든다 — 매 렌더마다 만들면 그래프가 깜빡인다
   const preview = useMemo(() => ({
     board: sampleScoreboard(elapsed),
     details: sampleDetails(elapsed),
     history: sampleHistory(elapsed),
   }), [elapsed]);
+
+  /*
+   * 매 틱 프레임을 서버 감지기로 보낸다.
+   *
+   * 화면이 "펜타킬이 났다"고 지목하면 감지 로직은 한 줄도 검증되지 않는다.
+   * 그래서 참가자별 누적 킬만 보내고, 펜타킬 판정은 폴링이 쓰는 것과 같은
+   * 서버의 PentakillDetector 가 한다.
+   *
+   * 경기는 서버가 예약된 테스트 경기로 고정한다. 요청이 경기를 고르게 두면
+   * 시연 화면을 여는 것만으로 진짜 경기의 쿠폰이 풀린다.
+   */
+  useEffect(() => {
+    const previous = lastElapsedRef.current;
+    lastElapsedRef.current = elapsed;
+
+    // 되감거나 다음 바퀴로 넘어가면 서버의 감지 상태를 버린다. 누적 킬이 줄어든
+    // 채로 이어가면 증가분이 잡히지 않고, 이미 발동한 참가자로 남아 다음 바퀴에서
+    // 영영 발동하지 않는다
+    const rewound = previous != null && elapsed < previous;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        if (rewound) await resetSampleFrames(SAMPLE_GAME_ID);
+        await sendSampleFrame({
+          gameId: SAMPLE_GAME_ID,
+          gameTimeSeconds: Math.floor(elapsed),
+          blue: participantKills(preview.board.blue),
+          red: participantKills(preview.board.red),
+        });
+        if (!cancelled) setFrameError(false);
+      } catch {
+        // 재생은 계속한다 — 화면 시연 자체는 서버 없이도 되어야 한다
+        if (!cancelled) setFrameError(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [elapsed, preview]);
+
+  const pentakillPassed = elapsed >= SAMPLE_PENTAKILL.endSeconds;
 
   const seek = useCallback((e) => {
     setElapsed(Number(e.target.value));
@@ -95,7 +160,7 @@ export default function SamplePage() {
     <main className="user-content page-live page-sample">
       <PageHeader
         title="샘플 재생"
-        description="서버 호출 없이 30분 경기를 반복 재생합니다. 시연과 화면 확인용이며 실제 경기 데이터가 아닙니다."
+        description="2026-08-15 GEN vs T1 의 기록을 서버 호출 없이 재생합니다. 시연용이라 펜타킬 한 건을 넣어 두었으며, 그 부분은 실제 경기와 다릅니다."
       />
 
       <section className="panel sample-panel">
@@ -155,6 +220,12 @@ export default function SamplePage() {
         />
         <div className="sample-progress"><i style={{ width: `${progress}%` }} /></div>
       </section>
+
+      {(frameError || pentakillPassed) && (
+        <p className="sample-trigger-notice" role="status">
+          {TRIGGER_MESSAGE[frameError ? 'error' : 'passed']}
+        </p>
+      )}
 
       <ActiveCouponClaim userId={userId} />
 
