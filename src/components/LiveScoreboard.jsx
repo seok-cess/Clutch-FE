@@ -68,6 +68,7 @@ export default function LiveScoreboard({
       {gameId
         ? (
           <GameBoard
+            key={gameId}
             gameId={gameId}
             live={!setEnded}
             finished={setEnded}

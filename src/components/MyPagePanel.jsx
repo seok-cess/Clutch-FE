@@ -28,10 +28,69 @@ function betLabels(bet, matches) {
   };
 }
 
-/** UTC 저장 시각을 목록용 분 단위 문자열로 표시한다. */
+/** UTC 저장 시각을 한국 표준시(KST) 기준으로 목록에 표시한다. */
 function formatCreatedAt(createdAt) {
   if (!createdAt) return '-';
-  return `${createdAt.replace('T', ' ').slice(0, 16)} UTC`;
+  // Spring LocalDateTime은 UTC 값이어도 오프셋 없이 직렬화될 수 있다.
+  // 오프셋이 없는 값은 UTC로 해석한 뒤 한국 시간대로 변환한다.
+  const normalized = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(createdAt)
+    ? createdAt
+    : `${createdAt}Z`;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return '-';
+  const parts = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const value = Object.fromEntries(parts
+    .filter((part) => part.type !== 'literal')
+    .map((part) => [part.type, part.value]));
+  return `${value.year}. ${value.month}. ${value.day}. ${value.hour}:${value.minute} KST`;
+}
+
+/** 포인트 증감을 부호까지 포함해 목록 표기용 문자열로 만든다. */
+function formatPointChange(point) {
+  if (point == null) return '-';
+  if (point === 0) return '±0P';
+  return `${point > 0 ? '+' : '-'}${Math.abs(point).toLocaleString()}P`;
+}
+
+/** 예상·확정 풀 배당을 구분해 표시한다. 환불 건에는 배당을 표시하지 않는다. */
+function payoutMultiplierLabel(bet) {
+  if (bet.payoutMultiplier == null) return '배당 없음';
+  const multiplier = Number(bet.payoutMultiplier);
+  if (!Number.isFinite(multiplier)) return '-';
+  return `${bet.payoutMultiplierConfirmed ? '확정' : '예상'} x${multiplier.toFixed(2)}`;
+}
+
+/** 배팅 상태에 맞는 실제 지급·몰수·환불 안내와 순손익을 만든다. */
+function settlementLabels(bet) {
+  if (bet.status === 'PLACED') {
+    return { primary: '정산 대기', secondary: '마감 후 확정' };
+  }
+  if (bet.status === 'LOST') {
+    return { primary: `손실 ${formatPointChange(bet.netPointChange)}`, secondary: null, tone: 'loss' };
+  }
+  if (bet.settlementPoint == null || bet.netPointChange == null) {
+    return { primary: '정산 금액 확인 중', secondary: null };
+  }
+  if (bet.status === 'REFUNDED') {
+    return {
+      primary: `환불 +${bet.settlementPoint.toLocaleString()}P`,
+      secondary: `순손익 ${formatPointChange(bet.netPointChange)}`,
+      tone: 'neutral',
+    };
+  }
+  return {
+    primary: `지급 +${bet.settlementPoint.toLocaleString()}P`,
+    secondary: `순손익 ${formatPointChange(bet.netPointChange)}`,
+    tone: 'win',
+  };
 }
 
 /** 현재 사용자의 보유 포인트와 전체 배팅 이력을 표시한다. */
@@ -109,7 +168,9 @@ export default function MyPagePanel({ userId, matches }) {
                       <th>MATCH</th>
                       <th>SET</th>
                       <th>PICK</th>
-                      <th>POINT</th>
+                      <th>BET</th>
+                      <th>ODDS</th>
+                      <th>SETTLEMENT</th>
                       <th>RESULT</th>
                       <th>EVENT</th>
                       <th>PLACED AT</th>
@@ -118,12 +179,20 @@ export default function MyPagePanel({ userId, matches }) {
                   <tbody>
                     {bets.map((bet) => {
                       const labels = betLabels(bet, matches);
+                      const settlement = settlementLabels(bet);
                       return (
                         <tr key={bet.userBetId}>
                           <td>{labels.matchLabel}</td>
                           <td>{bet.setNumber}세트</td>
                           <td className="my-bet-pick">{labels.teamLabel}</td>
                           <td>{bet.amount.toLocaleString()}P</td>
+                          <td className={`my-bet-odds ${bet.payoutMultiplierConfirmed ? 'confirmed' : 'estimated'}`}>
+                            {payoutMultiplierLabel(bet)}
+                          </td>
+                          <td className={`my-bet-settlement ${settlement.tone ?? ''}`}>
+                            <strong>{settlement.primary}</strong>
+                            {settlement.secondary && <small>{settlement.secondary}</small>}
+                          </td>
                           <td>
                             <span className={`my-bet-status ${bet.status.toLowerCase()}`}>
                               {BET_STATUS_LABEL[bet.status] ?? bet.status}

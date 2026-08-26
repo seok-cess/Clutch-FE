@@ -89,6 +89,12 @@ export default function BettingPanel({ match, userId, preview = false }) {
   }, [matchId, preview, userId]);
 
   useEffect(() => {
+    // 사용자 전환 직후 이전 사용자의 성공 문구·내 배팅이 잠깐 남으면 잔여 포인트가
+    // 동일한 것처럼 보인다. 새 사용자 조회가 끝날 때까지 해당 상태를 비운다.
+    setEvent(null);
+    setSelectedTeamId(null);
+    setMessage(null);
+    setError(null);
     loadEvent();
   }, [loadEvent]);
 
