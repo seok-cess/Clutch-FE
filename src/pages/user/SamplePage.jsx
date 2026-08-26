@@ -3,28 +3,34 @@ import { useAppData } from '../../app/AppDataProvider.jsx';
 import LiveScoreboard from '../../components/LiveScoreboard.jsx';
 import ActiveCouponClaim from '../../features/coupon/ActiveCouponClaim.jsx';
 import PageHeader from '../../shared/components/PageHeader.jsx';
-import { openCouponEventByTrigger } from '../../api/admin.js';
+import { resetSampleFrames, submitSampleFrame } from '../../api/admin.js';
 import {
   SAMPLE_DURATION,
   SAMPLE_GAME_ID,
-  SAMPLE_MATCH_ID,
-  SAMPLE_PENTAKILL,
   SAMPLE_TEAMS,
   sampleDetails,
+  sampleFramePayload,
   sampleHistory,
   sampleScoreboard,
 } from '../../shared/sample/sampleMatch.js';
 
 /**
- * 펜타킬 지점에서 무슨 일이 있었는지 화면에 남긴다.
- * 표시가 없으면 "왜 발급 창이 안 뜨지" 를 화면만 보고는 알 수 없다.
+ * 프레임 전송이 실패했을 때만 알린다.
+ *
+ * 성공했다고 쿠폰이 열리는 것은 아니다 — 사건이 났는지는 서버 감지기가 판단하고,
+ * 열렸다면 아래 발급 창이 뜬다. 그래서 "무슨 트리거가 발동했다" 는 문구를 화면이
+ * 미리 정해두지 않는다.
  */
-const TRIGGER_MESSAGE = {
-  opened: '펜타킬이 발생해 쿠폰 발급이 시작됐습니다.',
-  none: '펜타킬이 발생했지만 준비된 쿠폰 이벤트가 없습니다.'
-    + ' 관리자 화면에서 펜타킬 이벤트를 테스트용으로 등록해 주세요.',
-  error: '펜타킬을 알리는 데 실패했습니다. 잠시 후 다시 시도해 주세요.',
-};
+const FRAME_ERROR_MESSAGE = '경기 상황을 서버에 알리지 못했습니다.'
+  + ' 백엔드가 떠 있는지 확인해 주세요.';
+
+/**
+ * 서버로 프레임을 보내는 주기(게임 내 초).
+ *
+ * 실제 window 피드가 약 10초 간격이라 같은 간격으로 보낸다. 더 촘촘히 보내도
+ * 감지 결과는 같고 요청만 늘어난다.
+ */
+const FRAME_INTERVAL_SECONDS = 10;
 
 /** 화면 갱신 주기 — 실제 라이브와 같은 1초 */
 const TICK_MS = 1000;
@@ -72,50 +78,73 @@ export default function SamplePage() {
   }, [loop, elapsed]);
 
   /*
-   * 펜타킬 시점을 지나면 서버에 트리거를 알린다.
+   * 경기 상황을 서버 감지기에 흘려보낸다.
    *
-   * 쿠폰 발급은 서버 일이라(회차 생성·재고·중복 검사) 프론트가 감지만 해서는
-   * 아무 일도 일어나지 않는다. 그래서 샘플에서도 이 호출만은 서버로 나간다.
+   * 화면이 "펜타킬이 났다" 고 지목하면 감지 로직은 한 줄도 검증되지 않는다. 그래서
+   * 여기서는 참가자별 누적 킬만 보내고, 무슨 사건인지는 폴링이 쓰는 것과 같은
+   * 서버 감지기가 판단한다. 트리거가 늘어도 이 화면은 그대로다.
    *
-   * 경기는 테스트 전용 SAMPLE_MATCH_ID 로 고정한다. 경기를 지정하지 않으면 서버가
-   * 트리거만 보고 아무 경기의 PENTAKILL 이벤트나 열어버려, 시연 화면을 열어둔
-   * 것만으로 진짜 경기의 쿠폰이 풀린다.
+   * 경기는 서버가 예약된 테스트 경기로 고정한다. 화면이 경기를 고르게 두면 시연을
+   * 열어둔 것만으로 진짜 경기의 쿠폰이 풀린다.
    *
-   * 반복 재생이라 같은 지점을 여러 번 지나는데, 서버가 sourceEventKey 로
-   * 중복 오픈을 막으므로 그대로 보내도 회차는 한 번만 열린다. 다만 매 바퀴마다
-   * 요청이 나가지 않도록 이번 바퀴에 보냈는지는 여기서도 기억해 둔다.
+   * 되감거나 다음 바퀴로 넘어가면 감지 상태를 비운다. 남겨두면 누적 킬이 줄어든
+   * 것으로 보여 증가분이 잡히지 않고, 이미 발동한 사건은 영영 다시 열리지 않는다.
    */
-  const pentakillSentRef = useRef(false);
-  const [pentakillFired, setPentakillFired] = useState(false);
-  /** 트리거를 보낸 결과 — null(아직) | opened | none | error */
-  const [triggerOutcome, setTriggerOutcome] = useState(null);
+  const [frameFailed, setFrameFailed] = useState(false);
+
+  /** 마지막으로 보낸 프레임의 게임 내 시각. 같은 구간을 두 번 보내지 않는다 */
+  const lastSentSecondRef = useRef(null);
+
+  /** 전송이 겹치지 않게 한 번에 한 묶음만 보낸다 */
+  const sendingRef = useRef(false);
 
   useEffect(() => {
-    // 5킬이 다 들어간 뒤가 펜타킬이 성립한 시점이다
-    const reached = elapsed >= SAMPLE_PENTAKILL.endSeconds;
-    if (!reached) {
-      // 되감기거나 다음 바퀴로 넘어가면 다시 보낼 수 있게 되돌린다
-      pentakillSentRef.current = false;
-      setPentakillFired(false);
-      setTriggerOutcome(null);
-      return;
-    }
-    if (pentakillSentRef.current) return;
-    pentakillSentRef.current = true;
-    setPentakillFired(true);
+    if (sendingRef.current) return;
 
-    openCouponEventByTrigger({
-      trigger: 'PENTAKILL',
-      esportsMatchId: SAMPLE_MATCH_ID,
-      gameId: SAMPLE_GAME_ID,
-      gameTimeSeconds: SAMPLE_PENTAKILL.endSeconds,
-    }).then((opened) => {
-      // 열 이벤트가 없으면 204 라 body 가 비어 온다
-      setTriggerOutcome(opened ? 'opened' : 'none');
-    }).catch(() => {
-      // 실패해도 재생은 계속한다
-      setTriggerOutcome('error');
-    });
+    const bucket = Math.floor(elapsed / FRAME_INTERVAL_SECONDS)
+      * FRAME_INTERVAL_SECONDS;
+    const previous = lastSentSecondRef.current;
+    if (previous === bucket) return;
+
+    sendingRef.current = true;
+
+    /*
+     * 되감기·반복 재생이면 감지 상태부터 비운다.
+     *
+     * 남겨두면 누적 킬이 줄어든 것으로 보여 증가분이 잡히지 않고, 이미 발동한
+     * 사건은 다음 바퀴에서 영영 열리지 않는다.
+     */
+    const rewound = previous !== null && bucket < previous;
+    const prepare = rewound
+      ? resetSampleFrames(SAMPLE_GAME_ID).catch(() => {})
+      : Promise.resolve();
+
+    /*
+     * 건너뛴 구간을 빠짐없이 채워 보낸다.
+     *
+     * 배속이 높거나 사용자가 재생 위치를 옮기면 경과 시간이 한 번에 여러 구간을
+     * 뛰어넘는다. 그때 마지막 구간만 보내면 그 앞의 0킬 기준 프레임이 서버에
+     * 도착하지 않는다. 감지기는 첫 관측을 기준으로만 삼으므로, 기준 없이 킬이
+     * 있는 프레임부터 받으면 "이미 지나간 사건" 으로 보고 아무것도 열지 않는다.
+     */
+    const from = rewound || previous === null
+      ? 0
+      : previous + FRAME_INTERVAL_SECONDS;
+    const buckets = [];
+    for (let t = from; t <= bucket; t += FRAME_INTERVAL_SECONDS) {
+      buckets.push(t);
+    }
+
+    lastSentSecondRef.current = bucket;
+
+    prepare
+      .then(() => buckets.reduce(
+        (chain, t) => chain.then(() => submitSampleFrame(sampleFramePayload(t))),
+        Promise.resolve(),
+      ))
+      .then(() => setFrameFailed(false))
+      .catch(() => setFrameFailed(true))
+      .finally(() => { sendingRef.current = false; });
   }, [elapsed]);
 
   // 경과 시간이 바뀔 때만 다시 만든다 — 매 렌더마다 만들면 그래프가 깜빡인다
@@ -218,9 +247,9 @@ export default function SamplePage() {
         <div className="sample-progress"><i style={{ width: `${progress}%` }} /></div>
       </section>
 
-      {pentakillFired && triggerOutcome && (
+      {frameFailed && (
         <p className="sample-trigger-notice" role="status">
-          {TRIGGER_MESSAGE[triggerOutcome]}
+          {FRAME_ERROR_MESSAGE}
         </p>
       )}
 
