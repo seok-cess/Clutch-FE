@@ -5,4 +5,3 @@ export * from './rewards.js';
 export * from './coupon.js';
 export * from './admin.js';
 export * from './externalSource.js';
-export * from './sampleFrame.js';

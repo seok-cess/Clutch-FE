@@ -154,46 +154,6 @@ export default function SamplePage() {
     history: sampleHistory(elapsed),
   }), [elapsed]);
 
-  /*
-   * 매 틱 프레임을 서버 감지기로 보낸다.
-   *
-   * 화면이 "펜타킬이 났다"고 지목하면 감지 로직은 한 줄도 검증되지 않는다.
-   * 그래서 참가자별 누적 킬만 보내고, 펜타킬 판정은 폴링이 쓰는 것과 같은
-   * 서버의 PentakillDetector 가 한다.
-   *
-   * 경기는 서버가 예약된 테스트 경기로 고정한다. 요청이 경기를 고르게 두면
-   * 시연 화면을 여는 것만으로 진짜 경기의 쿠폰이 풀린다.
-   */
-  useEffect(() => {
-    const previous = lastElapsedRef.current;
-    lastElapsedRef.current = elapsed;
-
-    // 되감거나 다음 바퀴로 넘어가면 서버의 감지 상태를 버린다. 누적 킬이 줄어든
-    // 채로 이어가면 증가분이 잡히지 않고, 이미 발동한 참가자로 남아 다음 바퀴에서
-    // 영영 발동하지 않는다
-    const rewound = previous != null && elapsed < previous;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        if (rewound) await resetSampleFrames(SAMPLE_GAME_ID);
-        await sendSampleFrame({
-          gameId: SAMPLE_GAME_ID,
-          gameTimeSeconds: Math.floor(elapsed),
-          blue: participantKills(preview.board.blue),
-          red: participantKills(preview.board.red),
-        });
-        if (!cancelled) setFrameError(false);
-      } catch {
-        // 재생은 계속한다 — 화면 시연 자체는 서버 없이도 되어야 한다
-        if (!cancelled) setFrameError(true);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [elapsed, preview]);
-
-  const pentakillPassed = elapsed >= SAMPLE_PENTAKILL.endSeconds;
-
   const seek = useCallback((e) => {
     setElapsed(Number(e.target.value));
   }, []);
