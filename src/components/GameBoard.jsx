@@ -139,12 +139,18 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
       }
       if (cancelled) return;
       setReplaySpeed(speed);
+      // 재생을 바깥에서 제어하는 화면(샘플 재생)은 그 시계가 기준이다.
+      // 되감기·반복으로 시간이 줄어들 수 있으므로 그대로 따라간다
+      if (!previewTicks) {
+        setDisplayGameTime(serverTime);
+        return;
+      }
       setDisplayGameTime((current) => Math.max(current ?? serverTime, serverTime));
     };
 
     syncClock();
     return () => { cancelled = true; };
-  }, [board?.gameTimeSeconds, live, sourceMode]);
+  }, [board?.gameTimeSeconds, live, sourceMode, previewTicks]);
 
   // test 재생에서 실제 API로 돌아오면 이전 배속으로 앞서간 표시 시계를 즉시 버린다.
   useEffect(() => {
@@ -158,11 +164,15 @@ export default function GameBoard({ gameId, live, finished, statsUnavailable = f
     if (!live || board?.gameTimeSeconds == null || finished || board.gameState === 'finished') {
       return undefined;
     }
+    // 재생을 바깥에서 제어하는 화면(샘플 재생)은 시계를 직접 관리한다.
+    // 여기서도 올리면 일시정지·seek 을 눌러도 시계만 계속 흐른다
+    if (!previewTicks) return undefined;
+
     const timer = window.setInterval(() => {
       setDisplayGameTime((current) => (current ?? board.gameTimeSeconds) + replaySpeed);
     }, POLL_MS);
     return () => window.clearInterval(timer);
-  }, [board?.gameState, board?.gameTimeSeconds, finished, live, replaySpeed]);
+  }, [board?.gameState, board?.gameTimeSeconds, finished, live, replaySpeed, previewTicks]);
 
   if (!gameId) return null;
   if (statsUnavailable) {
