@@ -57,6 +57,32 @@ export function openCouponEventByTrigger({
   });
 }
 
+/**
+ * 시연 재생의 경기 프레임 한 장을 서버에 보낸다.
+ *
+ * 트리거를 지목하지 않는다 — 화면은 "지금 누가 몇 킬"만 알리고, 무슨 사건인지는
+ * 서버 감지기가 판단한다. 그래야 폴링이 쓰는 것과 같은 로직이 시연에서도 검증되고,
+ * 트리거가 늘어도 이 화면을 고치지 않아도 된다.
+ *
+ * 응답은 항상 204 다. 쿠폰이 열렸는지는 활성 회차 조회로 확인한다.
+ */
+export function submitSampleFrame({ gameId, gameTimeSeconds, blue, red }) {
+  return requestJson('/api/v1/test/sample-frames', {
+    method: 'POST',
+    body: { gameId, gameTimeSeconds, blue, red },
+    fallbackMessage: '시연 프레임을 보내지 못했습니다.',
+  });
+}
+
+/** 시연을 처음부터 다시 재생할 때 서버의 감지 상태를 비운다. */
+export function resetSampleFrames(gameId) {
+  const params = new URLSearchParams({ gameId });
+  return requestJson(`/api/v1/test/sample-frames?${params}`, {
+    method: 'DELETE',
+    fallbackMessage: '시연 감지 상태를 초기화하지 못했습니다.',
+  });
+}
+
 export const manualOpenCouponEvent = (couponEventId) => requestJson(
   `/api/v1/admin/coupon-events/${encodeURIComponent(couponEventId)}/occurrences/manual-open`,
   {
