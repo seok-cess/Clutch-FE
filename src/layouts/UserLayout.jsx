@@ -1,5 +1,6 @@
-import { NavLink, Outlet } from 'react-router';
+import { NavLink, Outlet, useLocation } from 'react-router';
 import { useAppData } from '../app/AppDataProvider.jsx';
+import ErrorBoundary from '../shared/components/ErrorBoundary.jsx';
 
 const USER_NAVIGATION = [
   { to: '/', label: '홈', end: true },
@@ -13,6 +14,7 @@ const USER_NAVIGATION = [
 
 export default function UserLayout() {
   const { live, userId, setUserId } = useAppData();
+  const location = useLocation();
 
   return (
     <div className="cl user-shell">
@@ -53,7 +55,10 @@ export default function UserLayout() {
         </div>
       </header>
       <div id="user-main" className="user-route" tabIndex="-1">
-        <Outlet />
+        {/* 한 화면의 렌더 오류가 헤더와 다른 메뉴까지 지우지 않도록 라우트 단위로 막는다 */}
+        <ErrorBoundary resetKey={location.pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </div>
     </div>
   );

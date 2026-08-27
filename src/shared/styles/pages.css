@@ -1286,3 +1286,19 @@
   background: var(--app-blue);
   transition: width 0.2s linear;
 }
+
+/* 렌더 오류 경계 — 원인 메시지를 그대로 보여준다 */
+.error-detail {
+  margin: 12px 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--app-line);
+  border-left: 3px solid var(--app-red);
+  border-radius: var(--app-radius-control);
+  background: var(--app-bg-muted);
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}

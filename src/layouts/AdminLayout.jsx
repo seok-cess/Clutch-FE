@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState } from 'react';
-import { NavLink, Outlet } from 'react-router';
+import { NavLink, Outlet, useLocation } from 'react-router';
+import ErrorBoundary from '../shared/components/ErrorBoundary.jsx';
 
 const AdminContext = createContext(null);
 
@@ -13,6 +14,7 @@ const ADMIN_NAVIGATION = [
 ];
 
 export default function AdminLayout() {
+  const location = useLocation();
   const [adminId, setAdminId] = useState(
     () => window.localStorage.getItem('clutch-admin-id') ?? '1',
   );
@@ -57,7 +59,9 @@ export default function AdminLayout() {
           </div>
         </aside>
         <main id="admin-main" className="admin-content" tabIndex="-1">
-          <Outlet />
+          <ErrorBoundary resetKey={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </AdminContext.Provider>
