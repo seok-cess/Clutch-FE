@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchCurrentBettingEvent, placeBet } from '../api.js';
+import { fetchCurrentBettingEvent, placeBet } from '../../api/betting.js';
 
 const MIN_BET_POINT = 1_000;
 const MAX_BET_POINT = 100_000;
@@ -41,7 +41,7 @@ function validateBetAmount(value) {
   return null;
 }
 
-/** 라이브 매치에서 현재 세트 배팅을 조회하고 등록하는 최소 패널. */
+/** 세트 승리 팀 배팅을 조회하고 등록하는 최소 패널. 라이브 매치와 일정 화면의 승부예측 아코디언에서 함께 쓴다. */
 export default function BettingPanel({ match, userId, preview = false }) {
   const matchId = match.matchId;
   const [event, setEvent] = useState(null);

@@ -1,5 +1,8 @@
 import { useRef, useState } from 'react';
-import { TowerIcon, InhibitorIcon, BaronIcon, DragonIcon } from './icons.jsx';
+import { InhibitorIcon, DragonIcon } from './icons.jsx';
+
+const TOWER_ICON_SRC = encodeURI('/icons/포탑.png');
+const BARON_ICON_SRC = encodeURI('/icons/바론2.png');
 import { championIcon, dragonName, dragonDesc, dragonIcon } from '../ddragon.js';
 import IconTip from './IconTip.jsx';
 
@@ -122,9 +125,9 @@ function TeamObjectives({ team, side, dragonTimes }) {
   if (!team) return <div className={`objectives ${side}`} />;
   return (
     <div className={`objectives ${side}`}>
-      <span className="obj" title="타워"><TowerIcon /><b>{team.towers ?? 0}</b></span>
+      <span className="obj" title="타워"><img src={TOWER_ICON_SRC} alt="" className="obj-ico" /><b>{team.towers ?? 0}</b></span>
       <span className="obj" title="억제기"><InhibitorIcon /><b>{team.inhibitors ?? 0}</b></span>
-      <span className="obj" title="바론"><BaronIcon /><b>{team.barons ?? 0}</b></span>
+      <span className="obj" title="바론"><img src={BARON_ICON_SRC} alt="" className="obj-ico" /><b>{team.barons ?? 0}</b></span>
 
       {/* 드래곤 — 아이콘 하나에 올리면 획득한 용 전체가 목록으로 뜬다 */}
       <DragonList dragons={team.dragons ?? []} times={dragonTimes} />

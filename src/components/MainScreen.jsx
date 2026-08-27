@@ -64,6 +64,10 @@ function LiveHero({ match, scoreboard, onGoLive }) {
   const goldDiff = sa && sb && sa.totalGold != null && sb.totalGold != null
     ? sa.totalGold - sb.totalGold
     : null;
+  // 부호 대신 앞서는 진영의 색으로 우열을 보여준다 — 동률이거나 진영을 특정 못하면 중립색.
+  const goldLeader = goldDiff == null || goldDiff === 0
+    ? null
+    : (goldDiff > 0) === blueIsA ? 'blue' : 'red';
 
   return (
     <section className="cl-hero">
@@ -107,7 +111,7 @@ function LiveHero({ match, scoreboard, onGoLive }) {
             <span>드래곤<b>{sa?.dragons?.length ?? '—'}</b></span>
           </span>
           <span className="cl-gd">
-            골드<b>{goldDiff == null ? '—' : `${goldDiff >= 0 ? '+' : ''}${goldDiff.toLocaleString()}`}</b>
+            골드<b className={goldLeader ?? ''}>{goldDiff == null ? '—' : `+${Math.abs(goldDiff).toLocaleString()}`}</b>
           </span>
           <span className="cl-os r">
             <span>타워<b>{sb?.towers ?? '—'}</b></span>
