@@ -13,28 +13,11 @@ const base = {
   strokeLinejoin: 'round',
 };
 
-/** 타워 — 계측 눈금 형태의 구조물 */
-export const TowerIcon = () => (
-  <svg {...base} aria-hidden="true">
-    <path d="M5 14V6l3-3 3 3v8" />
-    <path d="M3 14h10M5 9h6" />
-  </svg>
-);
-
-/** 억제기 — 캘리퍼로 잰 코어 */
+/** 억제기 — 원형 배지 안의 보석. currentColor 라 팀 색(블루/레드)을 그대로 받는다 */
 export const InhibitorIcon = () => (
   <svg {...base} aria-hidden="true">
-    <path d="M8 2l4 3v6l-4 3-4-3V5z" />
-    <path d="M8 6v4" />
-  </svg>
-);
-
-/** 바론 — 게이지 아크 */
-export const BaronIcon = () => (
-  <svg {...base} aria-hidden="true">
-    <path d="M2 11a6 6 0 0 1 12 0" />
-    <path d="M8 11L11 7" />
-    <path d="M2 13h12" />
+    <circle cx="8" cy="8" r="6" />
+    <path d="M8 3.5L11.5 8L8 12.5L4.5 8Z" fill="currentColor" stroke="none" />
   </svg>
 );
 
@@ -51,10 +34,17 @@ export const ChevronIcon = ({ open }) => (
   </svg>
 );
 
-/** 드래곤 — 각진 측정 도형 */
+/** 드래곤 — 단순화한 얼굴 실루엣. 바론·타워와 맞춰 팀 색과 무관한 고정 색을 쓴다 */
 export const DragonIcon = () => (
-  <svg {...base} aria-hidden="true">
-    <path d="M2 8l3-4 3 4-3 4z" />
-    <path d="M8 8l3-4 3 4-3 4z" />
+  <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+    <path
+      d="M4.5 3L6 1.2 8 3 10 1.2 11.5 3 14 8 11 13 8 15 5 13 2 8Z"
+      fill="#3FBE7B"
+      stroke="#1F8F5F"
+      strokeWidth="0.75"
+      strokeLinejoin="round"
+    />
+    <circle cx="6.2" cy="7.6" r="0.9" fill="#0B2E1E" />
+    <circle cx="9.8" cy="7.6" r="0.9" fill="#0B2E1E" />
   </svg>
 );
