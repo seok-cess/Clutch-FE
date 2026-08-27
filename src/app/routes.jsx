@@ -18,13 +18,17 @@ import MatchDetailPage from '../pages/user/MatchDetailPage.jsx';
 import RewardsPage from '../pages/user/RewardsPage.jsx';
 import SchedulePage from '../pages/user/SchedulePage.jsx';
 import StandingsPage from '../pages/user/StandingsPage.jsx';
+import ErrorBoundary from '../shared/components/ErrorBoundary.jsx';
 import { AppDataProvider } from './AppDataProvider.jsx';
 
 function UserAppShell() {
+  // Provider 는 UserLayout 보다 바깥이라 라우트 경계가 잡지 못한다. 여기서 한 번 더 막는다
   return (
-    <AppDataProvider>
-      <UserLayout />
-    </AppDataProvider>
+    <ErrorBoundary>
+      <AppDataProvider>
+        <UserLayout />
+      </AppDataProvider>
+    </ErrorBoundary>
   );
 }
 
