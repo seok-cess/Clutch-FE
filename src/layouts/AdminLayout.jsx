@@ -5,11 +5,13 @@ import ErrorBoundary from '../shared/components/ErrorBoundary.jsx';
 const AdminContext = createContext(null);
 
 const ADMIN_NAVIGATION = [
-  { to: '/admin', label: '운영 요약', end: true },
+  { to: '/admin', label: '운영 홈', end: true },
+  { label: '쿠폰 운영', section: true },
   { to: '/admin/coupon-events', label: '쿠폰 이벤트' },
-  { to: '/admin/coupons', label: '발급 쿠폰' },
   { to: '/admin/coupon-types', label: '쿠폰 종류' },
   { to: '/admin/coupon-claims', label: '쿠폰 발급 내역' },
+  { to: '/admin/coupons', label: '발급 쿠폰 취소', nested: true },
+  { label: '데이터 운영', section: true },
   { to: '/admin/backfill', label: '데이터 백필' },
 ];
 
@@ -33,16 +35,21 @@ export default function AdminLayout() {
         <aside className="admin-sidebar">
           <NavLink to="/admin" className="admin-brand">CLUTCH<span>ADMIN</span></NavLink>
           <nav aria-label="관리자 주요 메뉴">
-            {ADMIN_NAVIGATION.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) => (isActive ? 'active' : undefined)}
-              >
-                {item.label}
-              </NavLink>
-            ))}
+            {ADMIN_NAVIGATION.map((item) => item.section ? (
+              <span className="admin-nav-section" key={item.label}>{item.label}</span>
+            ) : (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) => [
+                    isActive ? 'active' : '',
+                    item.nested ? 'admin-nav-nested' : '',
+                  ].filter(Boolean).join(' ')}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
           </nav>
           <div className="admin-sidebar-footer">
             <label>

@@ -44,6 +44,19 @@
   padding: 24px 14px;
 }
 
+.admin-nav-section {
+  margin-top: 16px;
+  padding: 0 14px 6px;
+  color: var(--app-text-faint);
+  font-size: 0.66rem;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+}
+
+.admin-nav-section:first-of-type {
+  margin-top: 12px;
+}
+
 .admin-sidebar nav a {
   min-height: 46px;
   display: flex;
@@ -64,6 +77,15 @@
 .admin-sidebar nav a.active {
   background: rgba(217, 164, 65, 0.11);
   color: #efc46c;
+}
+
+.admin-sidebar nav a.admin-nav-nested {
+  min-height: 40px;
+  margin-left: 14px;
+  padding-left: 22px;
+  border-left: 1px solid var(--app-line);
+  border-radius: 0 var(--app-radius-control) var(--app-radius-control) 0;
+  font-size: 0.82rem;
 }
 
 .admin-sidebar-footer {
@@ -160,8 +182,21 @@
     padding: 8px;
   }
 
+  .admin-nav-section {
+    display: none;
+  }
+
   .admin-sidebar nav a {
     min-width: max-content;
+  }
+
+  .admin-sidebar nav a.admin-nav-nested {
+    min-height: 46px;
+    margin-left: 0;
+    padding-left: 14px;
+    border-left: none;
+    border-radius: var(--app-radius-control);
+    font-size: 0.9rem;
   }
 
   .admin-sidebar-footer {
