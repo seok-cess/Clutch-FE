@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { NavLink } from 'react-router';
+import { NavLink, useSearchParams } from 'react-router';
 import { fetchCouponClaimHistory } from '../../../api/admin.js';
 import { useAdmin } from '../../../layouts/AdminLayout.jsx';
 import { EmptyState, ErrorState, LoadingState } from '../../../shared/components/AsyncState.jsx';
@@ -43,6 +43,17 @@ const EMPTY_FILTERS = {
   to: '',
 };
 
+function filtersFromSearchParams(searchParams) {
+  const requestStatus = searchParams.get('requestStatus');
+  const supportedRequestStatus = REQUEST_STATUS_OPTIONS.some((option) => (
+    option.value === requestStatus
+  ));
+  return {
+    ...EMPTY_FILTERS,
+    requestStatus: supportedRequestStatus ? requestStatus : '',
+  };
+}
+
 function buildQuery(filters) {
   const query = {
     requestStatus: filters.requestStatus || undefined,
@@ -81,8 +92,9 @@ function formatBenefit(claim) {
 
 export default function CouponClaimHistory() {
   const { adminId } = useAdmin();
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const [query, setQuery] = useState({});
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [filters, setFilters] = useState(() => filtersFromSearchParams(searchParams));
+  const [query, setQuery] = useState(() => buildQuery(filtersFromSearchParams(searchParams)));
   const [cursor, setCursor] = useState(null);
   const [cursorHistory, setCursorHistory] = useState([]);
   const [response, setResponse] = useState(null);
@@ -130,6 +142,7 @@ export default function CouponClaimHistory() {
   const resetFilters = () => {
     setFilters(EMPTY_FILTERS);
     setQuery({});
+    setSearchParams({}, { replace: true });
     setCursor(null);
     setCursorHistory([]);
     setReloadKey((value) => value + 1);
