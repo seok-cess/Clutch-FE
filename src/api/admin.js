@@ -160,6 +160,12 @@ export function fetchCouponClaimHistory(adminId, {
   return requestAsAdmin(`/api/v1/admin/coupon-claims?${params}`, adminId);
 }
 
+export function fetchCouponDashboard(adminId, { date, trendDays = 7 } = {}) {
+  const params = new URLSearchParams({ trendDays: String(trendDays) });
+  if (date) params.set('date', date);
+  return requestAsAdmin(`/api/v1/admin/coupon-dashboard?${params}`, adminId);
+}
+
 /**
  * 시연·테스트로 생긴 회차와 발급 이력을 지우고 이벤트를 READY 로 되돌린다.
  *
