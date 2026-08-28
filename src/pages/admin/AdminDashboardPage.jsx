@@ -1,15 +1,55 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router';
-import { fetchBackfillStatus, fetchCouponEvents } from '../../api/admin.js';
+import { fetchBackfillStatus, fetchCouponDashboard } from '../../api/admin.js';
+import { useAdmin } from '../../layouts/AdminLayout.jsx';
 import PageHeader from '../../shared/components/PageHeader.jsx';
 import StatusBadge from '../../shared/components/StatusBadge.jsx';
-import { formatNumber } from '../../shared/utils/format.js';
+import { formatDateTime, formatNumber } from '../../shared/utils/format.js';
+
+const TREND_DAY_OPTIONS = [7, 14, 30];
+
+function getKstToday() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+  const part = (type) => parts.find((item) => item.type === type)?.value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+function formatDate(value) {
+  if (!value) return '-';
+  const date = new Date(`${value}T00:00:00+09:00`);
+  if (Number.isNaN(date.getTime())) return '-';
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
+}
+
+function formatRate(value) {
+  if (value === null || value === undefined) return '-';
+  const rate = Number(value);
+  if (!Number.isFinite(rate)) return '-';
+  return `${rate.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}%`;
+}
 
 function getIssueRate(event) {
   const issued = Number(event.issuedQuantity ?? 0);
   const total = Number(event.totalQuantity ?? 0);
   if (total <= 0) return 0;
   return Math.min(100, Math.round((issued / total) * 100));
+}
+
+function getErrorMessage(error) {
+  if (error?.status === 503) {
+    return '쿠폰 재고를 확인할 수 없습니다. Redis 복구가 완료된 뒤 다시 시도해 주세요.';
+  }
+  if (error?.status === 403) return '운영 홈을 조회할 관리자 권한이 없습니다.';
+  return '운영 데이터를 불러오지 못했습니다. 서버 연결을 확인한 뒤 다시 시도해 주세요.';
 }
 
 function ChevronIcon() {
@@ -29,25 +69,71 @@ function InlineError({ children, onRetry }) {
   );
 }
 
+function IssuanceTrend({ items }) {
+  if (items.length === 0) {
+    return (
+      <div className="dashboard-empty">
+        <strong>표시할 발급 추이가 없습니다.</strong>
+        <span>선택한 기간에 발급 요청이 발생하면 일별 결과가 표시됩니다.</span>
+      </div>
+    );
+  }
+
+  const maxCount = Math.max(1, ...items.map((item) => (
+    Number(item.issuedCount ?? 0) + Number(item.failedCount ?? 0)
+  )));
+
+  return (
+    <div className="dashboard-trend-chart" role="group" aria-label="날짜별 쿠폰 발급 성공 및 실패 추이">
+      <div className="dashboard-trend-legend" aria-hidden="true">
+        <span><i className="trend-issued" />발급 성공</span>
+        <span><i className="trend-failed" />발급 실패</span>
+      </div>
+      <div className="dashboard-trend-bars" style={{ '--trend-columns': items.length }}>
+        {items.map((item) => {
+          const issued = Number(item.issuedCount ?? 0);
+          const failed = Number(item.failedCount ?? 0);
+          return (
+            <div className="dashboard-trend-day" key={item.date}>
+              <div className="dashboard-trend-values">
+                <span>{formatNumber(issued)}</span>
+                <span>{formatNumber(failed)}</span>
+              </div>
+              <div className="dashboard-trend-columns" aria-hidden="true">
+                <i className="trend-issued" style={{ '--trend-height': `${(issued / maxCount) * 100}%` }} />
+                <i className="trend-failed" style={{ '--trend-height': `${(failed / maxCount) * 100}%` }} />
+              </div>
+              <span>{formatDate(item.date)}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboardPage() {
-  const requestId = useRef(0);
-  const [eventsState, setEventsState] = useState({ data: [], loading: true, error: null });
+  const { adminId } = useAdmin();
+  const dashboardRequestId = useRef(0);
+  const [date, setDate] = useState(getKstToday);
+  const [trendDays, setTrendDays] = useState(7);
+  const [dashboardState, setDashboardState] = useState({ data: null, loading: true, error: null });
   const [backfillState, setBackfillState] = useState({ data: null, loading: true, error: null });
 
-  const loadEvents = useCallback(async () => {
-    const id = ++requestId.current;
-    setEventsState((current) => ({ ...current, loading: true, error: null }));
+  const loadDashboard = useCallback(async () => {
+    const requestId = ++dashboardRequestId.current;
+    setDashboardState((current) => ({ ...current, loading: true, error: null }));
     try {
-      const response = await fetchCouponEvents({ size: 20 });
-      if (id === requestId.current) {
-        setEventsState({ data: response?.events ?? [], loading: false, error: null });
+      const response = await fetchCouponDashboard(adminId, { date, trendDays });
+      if (requestId === dashboardRequestId.current) {
+        setDashboardState({ data: response, loading: false, error: null });
       }
     } catch (requestError) {
-      if (id === requestId.current) {
-        setEventsState({ data: [], loading: false, error: requestError.message });
+      if (requestId === dashboardRequestId.current) {
+        setDashboardState({ data: null, loading: false, error: requestError });
       }
     }
-  }, []);
+  }, [adminId, date, trendDays]);
 
   const loadBackfill = useCallback(async () => {
     setBackfillState((current) => ({ ...current, loading: true, error: null }));
@@ -55,142 +141,205 @@ export default function AdminDashboardPage() {
       const response = await fetchBackfillStatus();
       setBackfillState({ data: response, loading: false, error: null });
     } catch (requestError) {
-      setBackfillState({ data: null, loading: false, error: requestError.message });
+      setBackfillState({ data: null, loading: false, error: requestError });
     }
   }, []);
 
   useEffect(() => {
-    loadEvents();
-    loadBackfill();
-  }, [loadBackfill, loadEvents]);
+    loadDashboard();
+  }, [loadDashboard]);
 
-  const events = eventsState.data;
-  const openEvents = events.filter((event) => event.eventStatus === 'OPEN');
-  const soldOutEvents = openEvents.filter((event) => Number(event.remainingQuantity ?? 0) === 0);
+  useEffect(() => {
+    loadBackfill();
+  }, [loadBackfill]);
+
+  const dashboard = dashboardState.data;
+  const summary = dashboard?.summary;
+  const events = dashboard?.events ?? [];
+  const alerts = dashboard?.alerts ?? [];
+  const trend = dashboard?.issuanceTrend ?? [];
   const backfill = backfillState.data;
-  const eventSummaryUnavailable = eventsState.loading || Boolean(eventsState.error);
-  const backfillSummaryUnavailable = backfillState.loading || Boolean(backfillState.error);
-  const visibleEvents = [...events]
-    .sort((left, right) => Number(right.eventStatus === 'OPEN') - Number(left.eventStatus === 'OPEN'))
-    .slice(0, 5);
+  const dashboardUnavailable = dashboardState.loading || Boolean(dashboardState.error);
+  const dateLabel = date === getKstToday() ? '오늘' : '기준일';
+  const generatedAt = dashboard?.generatedAt
+    ? formatDateTime(`${dashboard.generatedAt}+09:00`, { timeZone: 'Asia/Seoul' })
+    : '-';
 
   return (
     <div className="admin-page admin-home-page">
       <PageHeader
         title="운영 홈"
-        description="쿠폰 이벤트와 데이터 적재 상태를 한곳에서 확인합니다."
+        description="쿠폰 발급 현황과 처리할 운영 이슈를 한곳에서 확인합니다."
         actions={<NavLink className="button-primary" to="/admin/coupon-events/new">이벤트 생성</NavLink>}
       />
 
       <section className="dashboard-status-section" aria-labelledby="dashboard-status-title">
-        <div className="dashboard-section-heading">
+        <div className="dashboard-section-heading dashboard-status-heading">
           <div>
             <h2 id="dashboard-status-title">운영 상태</h2>
-            <p>현재 조회된 이벤트와 백필 작업 기준입니다.</p>
+            <p>{date} 기준 · 마지막 집계 {generatedAt}</p>
           </div>
-          <button
-            className="button-secondary button-small"
-            type="button"
-            onClick={() => { loadEvents(); loadBackfill(); }}
-            disabled={eventsState.loading || backfillState.loading}
-          >
-            새로고침
-          </button>
+          <div className="dashboard-toolbar">
+            <label className="compact-field">
+              <span>기준일</span>
+              <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+            </label>
+            <label className="compact-field">
+              <span>추이 기간</span>
+              <select value={trendDays} onChange={(event) => setTrendDays(Number(event.target.value))}>
+                {TREND_DAY_OPTIONS.map((days) => <option key={days} value={days}>{days}일</option>)}
+              </select>
+            </label>
+            <button
+              className="button-secondary button-small"
+              type="button"
+              onClick={() => { loadDashboard(); loadBackfill(); }}
+              disabled={dashboardState.loading || backfillState.loading}
+            >
+              새로고침
+            </button>
+          </div>
         </div>
-        <div className="dashboard-status-grid">
+
+        {dashboardState.error && (
+          <InlineError onRetry={loadDashboard}>{getErrorMessage(dashboardState.error)}</InlineError>
+        )}
+
+        <div className="dashboard-status-grid" aria-live="polite">
           <article>
-            <span>진행 중인 이벤트</span>
-            <strong>{eventSummaryUnavailable ? '-' : formatNumber(openEvents.length)}</strong>
-            <p>{eventsState.error ? '이벤트 상태를 확인할 수 없습니다.' : '현재 참여 가능한 쿠폰 이벤트'}</p>
+            <span>진행 중 이벤트</span>
+            <strong>{dashboardUnavailable ? '-' : formatNumber(summary?.openEventCount)}</strong>
+            <p>현재 쿠폰 신청이 열린 이벤트</p>
           </article>
-          <article className={!eventsState.error && soldOutEvents.length > 0 ? 'needs-attention' : ''}>
-            <span>재고 소진 이벤트</span>
-            <strong>{eventSummaryUnavailable ? '-' : formatNumber(soldOutEvents.length)}</strong>
-            <p>{eventsState.error ? '재고 상태를 확인할 수 없습니다.' : soldOutEvents.length > 0 ? '진행 상태와 재고를 확인해 주세요.' : '현재 재고 소진 이벤트가 없습니다.'}</p>
+          <article className={!dashboardState.error && Number(summary?.soldOutEventCount ?? 0) > 0 ? 'needs-attention' : ''}>
+            <span>재고 소진</span>
+            <strong>{dashboardUnavailable ? '-' : formatNumber(summary?.soldOutEventCount)}</strong>
+            <p>Redis 실시간 재고 기준</p>
           </article>
-          <article className={!backfillState.error && Number(backfill?.gamesFailed ?? 0) > 0 ? 'needs-attention' : ''}>
-            <span>백필 실패 세트</span>
-            <strong>{backfillSummaryUnavailable ? '-' : formatNumber(backfill?.gamesFailed)}</strong>
-            <p>{backfillState.error ? '백필 상태를 확인할 수 없습니다.' : backfill?.running ? '백필 작업이 실행 중입니다.' : '최근 백필 작업 기준'}</p>
+          <article>
+            <span>{dateLabel} 발급</span>
+            <strong>{dashboardUnavailable ? '-' : formatNumber(summary?.todayIssuedCount)}</strong>
+            <p>{dashboardUnavailable ? '전체 요청 -' : `전체 요청 ${formatNumber(summary?.todayRequestCount)}건`}</p>
+          </article>
+          <article className={!dashboardState.error && Number(summary?.todayFailedCount ?? 0) > 0 ? 'needs-attention' : ''}>
+            <span>발급 실패</span>
+            <strong>{dashboardUnavailable ? '-' : formatNumber(summary?.todayFailedCount)}</strong>
+            <p>{dashboardUnavailable ? '처리 중 -' : `처리 중 ${formatNumber(summary?.todayPendingCount)}건`}</p>
+          </article>
+          <article>
+            <span>성공률</span>
+            <strong>{dashboardUnavailable ? '-' : formatRate(summary?.todaySuccessRate)}</strong>
+            <p>성공·실패 처리 완료 요청 기준</p>
           </article>
         </div>
       </section>
 
-      <div className="dashboard-primary-grid">
-        <section className="data-surface dashboard-event-surface" aria-labelledby="dashboard-event-title">
+      <div className="dashboard-insight-grid">
+        <section className="data-surface dashboard-trend-surface" aria-labelledby="dashboard-trend-title">
           <div className="dashboard-section-heading">
             <div>
-              <h2 id="dashboard-event-title">쿠폰 이벤트 현황</h2>
-              <p>진행 중인 이벤트를 우선해 최대 5개까지 표시합니다.</p>
+              <h2 id="dashboard-trend-title">발급 추이</h2>
+              <p>선택한 {trendDays}일 동안의 발급 성공과 실패 건수입니다.</p>
             </div>
-            <NavLink className="dashboard-text-link" to="/admin/coupon-events">전체 보기<ChevronIcon /></NavLink>
           </div>
-
-          {eventsState.error ? (
-            <InlineError onRetry={loadEvents}>
-              쿠폰 이벤트 상태를 불러오지 못했습니다. 서버 연결을 확인한 뒤 다시 시도해 주세요.
-            </InlineError>
-          ) : eventsState.loading ? (
-            <div className="dashboard-loading" role="status">이벤트를 불러오는 중입니다.</div>
-          ) : visibleEvents.length === 0 ? (
-            <div className="dashboard-empty">
-              <strong>등록된 쿠폰 이벤트가 없습니다.</strong>
-              <span>새 이벤트를 생성하면 이곳에서 상태와 발급량을 확인할 수 있습니다.</span>
-            </div>
-          ) : (
-            <div className="responsive-table-wrap">
-              <table className="app-table dashboard-event-table">
-                <thead>
-                  <tr>
-                    <th>이벤트</th>
-                    <th>경기 ID</th>
-                    <th>발급 현황</th>
-                    <th>잔여</th>
-                    <th>상태</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleEvents.map((event) => {
-                    const issueRate = getIssueRate(event);
-                    return (
-                      <tr key={event.couponEventId}>
-                        <td>
-                          <NavLink className="table-link" to={`/admin/coupon-events/${event.couponEventId}`}>
-                            {event.eventName}
-                          </NavLink>
-                        </td>
-                        <td>{event.esportsMatchId}</td>
-                        <td>
-                          <div className="dashboard-issue-progress">
-                            <span>{formatNumber(event.issuedQuantity)} / {formatNumber(event.totalQuantity)}</span>
-                            <progress max="100" value={issueRate}>{issueRate}%</progress>
-                          </div>
-                        </td>
-                        <td>{formatNumber(event.remainingQuantity)}</td>
-                        <td><StatusBadge status={event.eventStatus} /></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {dashboardState.error ? (
+            <div className="dashboard-empty"><strong>발급 추이를 표시할 수 없습니다.</strong></div>
+          ) : dashboardState.loading ? (
+            <div className="dashboard-loading" role="status">발급 추이를 불러오는 중입니다.</div>
+          ) : <IssuanceTrend items={trend} />}
         </section>
 
-        <aside className="data-surface dashboard-quick-surface" aria-labelledby="dashboard-quick-title">
+        <aside className="data-surface dashboard-alert-surface" aria-labelledby="dashboard-alert-title">
           <div className="dashboard-section-heading">
             <div>
-              <h2 id="dashboard-quick-title">빠른 작업</h2>
-              <p>자주 사용하는 운영 화면으로 이동합니다.</p>
+              <h2 id="dashboard-alert-title">처리 필요</h2>
+              <p>지금 확인해야 할 쿠폰 운영 항목입니다.</p>
             </div>
           </div>
-          <nav className="dashboard-quick-links" aria-label="관리자 빠른 작업">
-            <NavLink to="/admin/coupon-events/new"><span>쿠폰 이벤트 만들기</span><small>경기 트리거와 발급 수량 설정</small><ChevronIcon /></NavLink>
-            <NavLink to="/admin/coupon-types"><span>쿠폰 종류 등록</span><small>할인 방식과 혜택 값 설정</small><ChevronIcon /></NavLink>
-            <NavLink to="/admin/coupon-claims"><span>발급 내역 조회</span><small>요청 상태와 실제 발급 결과 확인</small><ChevronIcon /></NavLink>
-          </nav>
+          {dashboardState.error ? (
+            <div className="dashboard-empty dashboard-alert-empty"><strong>처리 항목을 표시할 수 없습니다.</strong></div>
+          ) : dashboardState.loading ? (
+            <div className="dashboard-loading" role="status">알림을 확인하는 중입니다.</div>
+          ) : alerts.length === 0 ? (
+            <div className="dashboard-empty dashboard-alert-empty">
+              <strong>처리할 항목이 없습니다.</strong>
+              <span>현재 쿠폰 운영 상태가 정상입니다.</span>
+            </div>
+          ) : (
+            <div className="dashboard-alert-list">
+              {alerts.map((alert) => (
+                <NavLink
+                  className={`dashboard-alert dashboard-alert-${String(alert.severity).toLowerCase()}`}
+                  key={`${alert.type}-${alert.targetUrl}`}
+                  to={alert.targetUrl}
+                >
+                  <span>{alert.title}</span>
+                  <strong>{formatNumber(alert.count)}</strong>
+                  <ChevronIcon />
+                </NavLink>
+              ))}
+            </div>
+          )}
         </aside>
       </div>
+
+      <section className="data-surface dashboard-event-surface" aria-labelledby="dashboard-event-title">
+        <div className="dashboard-section-heading">
+          <div>
+            <h2 id="dashboard-event-title">쿠폰 이벤트 현황</h2>
+            <p>운영 우선순위에 따라 제공된 이벤트를 표시합니다.</p>
+          </div>
+          <NavLink className="dashboard-text-link" to="/admin/coupon-events">전체 보기<ChevronIcon /></NavLink>
+        </div>
+
+        {dashboardState.error ? (
+          <div className="dashboard-empty"><strong>이벤트 현황을 표시할 수 없습니다.</strong></div>
+        ) : dashboardState.loading ? (
+          <div className="dashboard-loading" role="status">이벤트를 불러오는 중입니다.</div>
+        ) : events.length === 0 ? (
+          <div className="dashboard-empty">
+            <strong>표시할 쿠폰 이벤트가 없습니다.</strong>
+            <span>새 이벤트를 생성하면 경기와 발급 상태를 이곳에서 확인할 수 있습니다.</span>
+          </div>
+        ) : (
+          <div className="responsive-table-wrap">
+            <table className="app-table dashboard-event-table">
+              <thead>
+                <tr>
+                  <th>이벤트</th>
+                  <th>경기</th>
+                  <th>발급 현황</th>
+                  <th>잔여</th>
+                  <th>상태</th>
+                </tr>
+              </thead>
+              <tbody>
+                {events.map((event) => {
+                  const issueRate = getIssueRate(event);
+                  return (
+                    <tr key={event.couponEventId}>
+                      <td>
+                        <NavLink className="table-link" to={`/admin/coupon-events/${event.couponEventId}`}>
+                          {event.eventName}
+                        </NavLink>
+                      </td>
+                      <td><strong className="dashboard-match-name">{formatDate(event.matchDate)} {event.matchName ?? '-'}</strong></td>
+                      <td>
+                        <div className="dashboard-issue-progress">
+                          <span>{formatNumber(event.issuedQuantity)} / {formatNumber(event.totalQuantity)}</span>
+                          <progress max="100" value={issueRate}>{issueRate}%</progress>
+                        </div>
+                      </td>
+                      <td>{formatNumber(event.remainingQuantity)}</td>
+                      <td><StatusBadge status={event.eventStatus} label={event.statusLabel} /></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <section className="data-surface dashboard-backfill-surface" aria-labelledby="dashboard-backfill-title">
         <div className="dashboard-section-heading">
