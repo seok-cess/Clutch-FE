@@ -8,8 +8,22 @@ const FILTERS = [
   { value: '', label: '전체' },
   { value: 'ISSUED', label: '사용 가능' },
   { value: 'USED', label: '사용 완료' },
+  { value: 'EXPIRED', label: '만료' },
   { value: 'CANCELLED', label: '취소' },
 ];
+
+function formatCouponBenefit(coupon) {
+  const value = Number(coupon.discountValue);
+  if (!Number.isFinite(value)) return '-';
+
+  const formatted = value.toLocaleString('ko-KR', {
+    maximumFractionDigits: 2,
+  });
+
+  if (coupon.discountType === 'RATE') return `${formatted}%`;
+  if (coupon.discountType === 'AMOUNT') return `${formatted}원`;
+  return formatted;
+}
 
 export default function MyCouponList({ userId }) {
   const [status, setStatus] = useState('');
@@ -88,7 +102,7 @@ export default function MyCouponList({ userId }) {
               {coupons.map((coupon) => (
                 <tr key={coupon.id}>
                   <td className="coupon-code">{coupon.couponCode}</td>
-                  <td>{coupon.discountValue}{coupon.discountType === 'PERCENT' ? '%' : ''}</td>
+                  <td>{formatCouponBenefit(coupon)}</td>
                   <td><StatusBadge status={coupon.status} /></td>
                   <td>{formatDateTime(coupon.expiresAt)}</td>
                   <td className="table-action">

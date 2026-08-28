@@ -5,6 +5,7 @@ const STATUS_LABEL = {
   CANCELLED: '취소',
   ISSUED: '사용 가능',
   USED: '사용 완료',
+  EXPIRED: '만료',
   PLACED: '진행 중',
   WON: '적중',
   LOST: '미적중',
