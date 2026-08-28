@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import BettingPanel from '../betting/BettingPanel.jsx';
 
 const STATE_LABEL = {
@@ -20,6 +20,13 @@ function fmtDateHeader(d) {
 /** "17:00" */
 function fmtTime(d) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/** 로컬 기준으로 같은 날인지 */
+function isSameLocalDate(a, b) {
+  return a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate();
 }
 
 /** 날짜(로컬 기준)별로 경기를 묶는다 */
@@ -66,8 +73,9 @@ function defaultYearMonth(schedule) {
 }
 
 /**
- * 연도 아래 월을 두는 일정 목록. 열린 세트 배팅이 있는 경기는 행 안에 승부예측
- * 버튼을 노출하고, 누르면 별도 페이지로 이동하지 않고 그 자리에서 펼쳐진다.
+ * 연도 아래 월을 두는 일정 목록. 승부예측 버튼은 모든 경기에 항상 노출하되, 실제로 배팅이
+ * 열려 있을 때만 눌러서 펼칠 수 있다. 열리기 전에는 오늘 경기만 스틸블루 테두리로 표시해
+ * "오늘 배팅이 있다"는 것만 미리 알려주고, 클릭에는 반응하지 않는다.
  * 두 팀이 가운데 스코어를 향해 마주보는 대칭 배치 — 좌측 팀은 우측 정렬, 우측 팀은 좌측 정렬.
  */
 export default function ScheduleList({
@@ -81,6 +89,8 @@ export default function ScheduleList({
   const years = useMemo(() => yearsOf(schedule), [schedule]);
   const [yearMonth, setYearMonth] = useState(null);
   const [expandedMatchId, setExpandedMatchId] = useState(null);
+  const today = new Date();
+  const todayGroupRef = useRef(null);
 
   // 홈 화면과 같은 기준(/api/live)으로 판단한다 — 라이브 보기를 눌렀을 때 실제로 볼 것이 있게.
   // 종료된 매치는 한동안 /api/live에 더 남아있으므로(다시보기 유예), matchFinished로 걸러야
@@ -94,6 +104,12 @@ export default function ScheduleList({
 
   // 일정이 처음 도착했을 때만 기본 연·월을 잡는다 (이후 사용자의 선택을 덮어쓰지 않게)
   const active = yearMonth ?? (years.length ? defaultYearMonth(schedule) : null);
+
+  // 오늘이 포함된 월을 보고 있으면 오늘 날짜로 자동 스크롤한다 — 지난 경기가 많이 쌓인
+  // 달에서는 오늘 경기가 아래쪽에 묻혀 일일이 스크롤해서 찾아야 하는 문제를 덜어준다.
+  useEffect(() => {
+    todayGroupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [active?.year, active?.month]);
 
   // 선택한 연도에 실제 경기가 있는 월 — 나머지 월은 탭에서 비활성으로 표시한다
   const monthsWithData = useMemo(() => {
@@ -176,86 +192,99 @@ export default function ScheduleList({
         })}
       </div>
 
-      {groupByDate(visible).map(({ date, events }) => (
-        <section key={date.toISOString()} className="date-group">
-          <h3 className="date-header">{fmtDateHeader(date)}</h3>
+      {groupByDate(visible).map(({ date, events }) => {
+        const isToday = isSameLocalDate(date, today);
+        return (
+          <section
+            key={date.toISOString()}
+            className={`date-group ${isToday ? 'today' : ''}`}
+            ref={isToday ? todayGroupRef : undefined}
+          >
+            <h3 className={`date-header ${isToday ? 'today' : ''}`}>
+              {fmtDateHeader(date)}{isToday ? ' 오늘' : ''}
+            </h3>
 
-          {events.map((ev) => {
-            const [home, away] = ev.teams;
-            const started = ev.state !== 'unstarted';
-            const isExpanded = expandedMatchId === ev.matchId;
-            const bettingCandidate = bettingCandidatesByMatchId.get(ev.matchId);
-            // 배팅 후보에서 막 빠져도(마감) 펼쳐진 패널은 유지해 결과·내 배팅 상태를 계속 보여준다
-            const canPredict = Boolean(bettingCandidate) || isExpanded;
-            const isLive = liveMatchIds.has(ev.matchId);
-            const goToRow = () => (isLive ? onGoLive?.() : onSelect?.(ev));
+            {events.map((ev) => {
+              const [home, away] = ev.teams;
+              const started = ev.state !== 'unstarted';
+              const isExpanded = expandedMatchId === ev.matchId;
+              const bettingCandidate = bettingCandidatesByMatchId.get(ev.matchId);
+              // 승부예측 버튼은 모든 경기에 항상 노출한다 — 배팅 자체가 있다는 걸 미리 알 수 있게.
+              // 실제로 열려 있을 때만 눌러서 펼칠 수 있고, 열리기 전에는 오늘 경기라는 것만
+              // 스틸블루 테두리로 알려주고 클릭에는 반응하지 않는다.
+              // 배팅 후보에서 막 빠져도(마감) 펼쳐진 패널은 유지해 결과·내 배팅 상태를 계속 보여준다.
+              const isOpen = Boolean(bettingCandidate) || isExpanded;
+              const isMatchToday = isSameLocalDate(new Date(ev.startTime), today);
+              const predictState = isExpanded ? 'active' : isOpen ? 'open' : isMatchToday ? 'today' : '';
+              const isLive = liveMatchIds.has(ev.matchId);
+              const goToRow = () => (isLive ? onGoLive?.() : onSelect?.(ev));
 
-            return (
-              <div key={ev.matchId} className="match-row-group">
-                <div
-                  className={`match-row ${ev.state}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={goToRow}
-                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && goToRow()}
-                >
-                  <span className="match-time">{fmtTime(new Date(ev.startTime))}</span>
-                  <span className={`match-state ${ev.state}`}>
-                    {STATE_LABEL[ev.state] ?? ev.state}
-                  </span>
-                  <span className="match-block">{ev.blockName}</span>
+              return (
+                <div key={ev.matchId} className="match-row-group">
+                  <div
+                    className={`match-row ${ev.state}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={goToRow}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && goToRow()}
+                  >
+                    <span className="match-time">{fmtTime(new Date(ev.startTime))}</span>
+                    <span className={`match-state ${ev.state}`}>
+                      {STATE_LABEL[ev.state] ?? ev.state}
+                    </span>
+                    <span className="match-block">{ev.blockName}</span>
 
-                  {/* 홈 — 우측 정렬로 가운데를 향한다 */}
-                  <span className={`side home ${home?.outcome === 'win' ? 'winner' : ''}`}>
-                    <span className="side-name">{home?.name ?? 'TBD'}</span>
-                    {home?.image && <img src={home.image} alt="" className="team-logo" />}
-                  </span>
+                    {/* 홈 — 우측 정렬로 가운데를 향한다 */}
+                    <span className={`side home ${home?.outcome === 'win' ? 'winner' : ''}`}>
+                      <span className="side-name">{home?.name ?? 'TBD'}</span>
+                      {home?.image && <img src={home.image} alt="" className="team-logo" />}
+                    </span>
 
-                  <span className="match-score">
-                    {started ? (
-                      <>
-                        <b className={home?.outcome === 'win' ? 'winner' : ''}>{home?.gameWins ?? 0}</b>
-                        <span className="sep">:</span>
-                        <b className={away?.outcome === 'win' ? 'winner' : ''}>{away?.gameWins ?? 0}</b>
-                      </>
-                    ) : (
-                      <span className="sep">vs</span>
-                    )}
-                  </span>
+                    <span className="match-score">
+                      {started ? (
+                        <>
+                          <b className={home?.outcome === 'win' ? 'winner' : ''}>{home?.gameWins ?? 0}</b>
+                          <span className="sep">:</span>
+                          <b className={away?.outcome === 'win' ? 'winner' : ''}>{away?.gameWins ?? 0}</b>
+                        </>
+                      ) : (
+                        <span className="sep">vs</span>
+                      )}
+                    </span>
 
-                  {/* 어웨이 — 좌측 정렬 */}
-                  <span className={`side away ${away?.outcome === 'win' ? 'winner' : ''}`}>
-                    {away?.image && <img src={away.image} alt="" className="team-logo" />}
-                    <span className="side-name">{away?.name ?? 'TBD'}</span>
-                  </span>
+                    {/* 어웨이 — 좌측 정렬 */}
+                    <span className={`side away ${away?.outcome === 'win' ? 'winner' : ''}`}>
+                      {away?.image && <img src={away.image} alt="" className="team-logo" />}
+                      <span className="side-name">{away?.name ?? 'TBD'}</span>
+                    </span>
 
-                  {canPredict && (
                     <button
                       type="button"
-                      className={`predict-toggle ${isExpanded ? 'active' : ''}`}
+                      className={`predict-toggle ${predictState}`}
                       aria-expanded={isExpanded}
                       onClick={(e) => {
                         e.stopPropagation();
+                        if (!isOpen) return;
                         setExpandedMatchId((current) => (current === ev.matchId ? null : ev.matchId));
                       }}
                       onKeyDown={(e) => e.stopPropagation()}
                     >
                       승부예측
                     </button>
-                  )}
-                  <span className="match-go">{isLive ? '라이브 보기' : '기록 보기'}</span>
-                </div>
-
-                {isExpanded && (
-                  <div className="match-predict-panel">
-                    <BettingPanel match={bettingCandidate ?? ev} userId={userId} />
+                    <span className="match-go">{isLive ? '라이브 보기' : '기록 보기'}</span>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </section>
-      ))}
+
+                  {isExpanded && (
+                    <div className="match-predict-panel">
+                      <BettingPanel match={bettingCandidate ?? ev} userId={userId} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </section>
+        );
+      })}
     </div>
   );
 }
