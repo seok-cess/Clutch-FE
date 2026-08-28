@@ -229,7 +229,6 @@ body {
   font-weight: 400;
 }
 
-
 /* L자 크롭마크 — 계측기 프레임 디테일 */
 .cropmarks::before,
 .cropmarks::after {
@@ -561,6 +560,12 @@ body {
 
 .date-group:first-child .date-header { margin-top: 0; }
 
+/* 오늘 날짜 그룹 — 지난 경기 사이에서 바로 눈에 띄게 배경·글자색을 스틸블루로 */
+.date-header.today {
+  color: var(--steel);
+  background: rgba(90, 169, 230, 0.1);
+}
+
 /* 매치 행 + 승부예측 버튼·패널을 하나로 묶어 아래쪽 구분선을 준다 */
 .match-row-group { border-bottom: 1px solid var(--surface); }
 
@@ -665,8 +670,10 @@ body {
   }
 }
 
-/* 승부예측 — 배팅이 열린 경기 행에서 "기록 보기" 바로 왼쪽 칸에 작은 토글 버튼을 두고,
-   누르면 같은 자리에서 패널이 펼쳐진다. 펼침 여부는 색으로만 구분하고 문구는 바꾸지 않는다. */
+/* 승부예측 — 모든 경기 행에 "기록 보기" 바로 왼쪽 칸으로 항상 노출한다. 세 단계로 구분:
+   기본(비활성, 회색) → 오늘 경기(스틸블루 테두리, 아직 클릭은 안 먹음) → 열림(스틸블루,
+   클릭하면 같은 자리에서 패널이 펼쳐지며 채워짐). 펼침 여부는 색으로만 구분하고 문구는
+   바꾸지 않는다. */
 /* .cl button (mainScreen.css) 리셋보다 우선하도록 조상 클래스로 우선순위를 올린다 */
 .match-row .predict-toggle {
   display: inline-flex;
@@ -675,19 +682,32 @@ body {
   justify-self: end;
   height: 28px;
   padding: 0 10px;
-  border: 1px solid var(--steel);
+  border: 1px solid var(--surface);
   border-radius: 2px;
   background: none;
-  color: var(--steel);
+  color: var(--muted);
   font: inherit;
   font-size: 0.74rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+  cursor: default;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
 
-.predict-toggle:hover,
-.predict-toggle.active {
+/* 오늘 경기 — 아직 배팅이 열리기 전이라도 오늘임을 색으로 미리 알려준다. 클릭은 안 먹는다 */
+.match-row .predict-toggle.today {
+  border-color: var(--steel);
+  color: var(--steel);
+}
+
+/* 열림 — 실제로 배팅 가능한 상태. 클릭해서 펼칠 수 있다 */
+.match-row .predict-toggle.open {
+  border-color: var(--steel);
+  color: var(--steel);
+  cursor: pointer;
+}
+
+.match-row .predict-toggle.open:hover,
+.match-row .predict-toggle.active {
   background: var(--steel);
   color: var(--bg);
 }
@@ -1062,7 +1082,6 @@ tbody tr:hover td { color: var(--text); }
 }
 
 .betting-refresh,
-.betting-teams button,
 .betting-submit button {
   border: 1px solid var(--bg);
   border-radius: 2px;
@@ -1093,14 +1112,33 @@ tbody tr:hover td { color: var(--text); }
   gap: 12px;
 }
 
-.betting-teams button {
+/* 팀 선택 버튼 — 기존엔 테두리가 배경색과 같아 버튼처럼 안 보였다. 늘 보이는 테두리를
+   기본값으로 두고, 선택하면 꽉 채워서 확실히 구분되게 한다.
+   .cl button (mainScreen.css) 리셋과 특이도가 같아서(class+element) 조상 클래스를 더 붙였다 */
+.betting-panel .betting-teams button {
   min-height: 54px;
   padding: 10px 16px;
   font-weight: 600;
+  border: 1px solid var(--surface);
+  border-radius: 2px;
+  background: var(--bg-alt);
+  color: var(--muted-read);
+  cursor: pointer;
+  font: inherit;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
 
-.betting-teams button:hover,
-.betting-teams button.selected,
+.betting-panel .betting-teams button:hover:not(:disabled) {
+  border-color: var(--steel);
+  color: var(--steel);
+}
+
+.betting-panel .betting-teams button.selected {
+  border-color: var(--steel);
+  background: var(--steel);
+  color: var(--bg);
+}
+
 .betting-refresh:hover,
 .betting-submit button:hover {
   color: var(--steel);
