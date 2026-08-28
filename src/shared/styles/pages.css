@@ -194,95 +194,399 @@
 }
 
 /* 사용자 라이브와 리워드 */
-.active-coupon {
+.coupon-modal-backdrop {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 28px;
-  margin-bottom: 22px;
-  padding: 22px 24px;
-  border-color: rgba(217, 164, 65, 0.34);
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 6, 14, 0.72);
 }
 
-.active-coupon-title-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.coupon-modal {
+  /* 임박 진행도 0→1. 컴포넌트가 매초 갱신하고 색은 이 값에서 파생된다. */
+  --coupon-urgency: 0;
+  position: relative;
+  width: min(100%, 392px);
+  max-height: 100%;
+  overflow-y: auto;
+  padding-bottom: 20px;
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius);
+  background: var(--app-bg-raised);
+  box-shadow: 0 18px 50px rgba(2, 6, 14, 0.34);
 }
 
-.active-coupon h2 {
+.coupon-modal:focus-visible {
+  outline: 2px solid var(--app-focus);
+  outline-offset: 2px;
+}
+
+.coupon-modal-head {
+  padding: 20px 22px 0;
+}
+
+/* 제목이 모달 맨 위에 오므로 닫기 버튼 자리를 비워 둔다. */
+.coupon-modal-head:not(.coupon-modal-head-center) h2 {
+  padding-right: 34px;
+}
+
+.coupon-modal-head-center {
+  text-align: center;
+}
+
+.coupon-modal h2 {
   margin: 0;
   color: var(--app-text);
-  font-size: clamp(1.12rem, 2vw, 1.4rem);
+  font-size: 1.18rem;
   font-weight: 850;
   letter-spacing: -0.025em;
 }
 
-.active-coupon-content > p:not(.coupon-feedback, .coupon-poll-copy) {
-  max-width: 68ch;
-  margin: 7px 0 0;
+.coupon-modal-head-center h2 {
+  margin-top: 12px;
+}
+
+.coupon-modal-description {
+  margin: 6px 0 0;
   color: var(--app-text-muted);
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   line-height: 1.55;
 }
 
-.active-coupon-meta {
+.coupon-modal-check {
+  width: 48px;
+  height: 48px;
+  margin: 2px auto 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(85, 201, 138, 0.42);
+  border-radius: 50%;
+  background: rgba(85, 201, 138, 0.12);
+  color: var(--app-green);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.coupon-modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius-control);
+  background: none;
+  color: var(--app-text-faint);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 180ms var(--app-ease), border-color 180ms var(--app-ease);
+}
+
+/* 시안의 28px 사각형은 그대로 두고 탭 영역만 44px로 넓힌다. */
+.coupon-modal-close::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.coupon-modal-close:hover {
+  color: var(--app-text);
+  border-color: var(--app-text-faint);
+}
+
+.coupon-ticket {
+  position: relative;
+  margin: 18px 22px 0;
+  padding: 17px 19px;
+  border: 1px solid rgba(90, 169, 230, 0.34);
+  border-radius: var(--app-radius);
+  background: linear-gradient(135deg, rgba(90, 169, 230, 0.14), rgba(90, 169, 230, 0.04));
+}
+
+.coupon-ticket::before,
+.coupon-ticket::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--app-bg-raised);
+  transform: translateY(-50%);
+}
+
+.coupon-ticket::before {
+  left: -9.5px;
+}
+
+.coupon-ticket::after {
+  right: -9.5px;
+}
+
+.coupon-ticket-amount {
+  margin: 0;
+  color: var(--app-blue);
+  font-size: 2rem;
+  font-weight: 850;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.coupon-ticket-amount small {
+  margin-left: 3px;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+/* 할인 값이 없는 응답에서는 이벤트 이름이 티켓의 주인공이 된다. */
+.coupon-ticket-amount-text {
+  font-size: 1.24rem;
+  letter-spacing: -0.03em;
+  line-height: 1.3;
+  word-break: keep-all;
+}
+
+.coupon-ticket-name {
+  margin: 5px 0 0;
+  color: var(--app-text-muted);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.coupon-ticket hr {
+  margin: 13px 0;
+  border: 0;
+  border-top: 1px dashed rgba(90, 169, 230, 0.3);
+}
+
+.coupon-ticket-meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0;
-  margin: 18px 0 0;
-}
-
-.active-coupon-meta > div {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 0 18px;
-  border-right: 1px solid var(--app-line-soft);
-}
-
-.active-coupon-meta > div:first-child {
-  padding-left: 0;
-}
-
-.active-coupon-meta > div:last-child {
-  border-right: none;
-}
-
-.active-coupon-meta dt {
+  justify-content: space-between;
+  margin: 0;
   color: var(--app-text-faint);
   font-size: 0.7rem;
   font-weight: 700;
-}
-
-.active-coupon-meta dd {
-  margin: 0;
-  color: var(--app-text);
-  font-size: 0.84rem;
-  font-weight: 750;
   font-variant-numeric: tabular-nums;
 }
 
-.active-coupon-meta > div:first-child dd,
-.active-coupon-meta > div:nth-child(2) dd {
-  color: var(--app-gold);
+.coupon-ticket-done {
+  color: var(--app-green);
 }
 
-.active-coupon-action {
-  width: 178px;
+.coupon-countdown {
+  padding: 18px 22px 0;
+}
+
+.coupon-countdown-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 8px;
+}
+
+.coupon-countdown-label {
+  color: var(--app-text-faint);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.coupon-countdown-value {
+  color: var(--app-blue);
+  font-size: 2.2rem;
+  font-weight: 850;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transition: color 950ms linear;
+}
+
+.coupon-countdown-bar {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--app-line-soft);
+  overflow: hidden;
+}
+
+.coupon-countdown-bar i {
+  display: block;
+  height: 100%;
+  background: var(--app-blue);
+  transition: width 950ms linear, background-color 950ms linear;
+}
+
+/*
+  임박 전환 — 5초부터 블루가 레드로 "점점" 물들어 2초에 완전히 붉어진다.
+  클래스를 한 번에 토글하면 색이 튀므로 --coupon-urgency(0→1)에서 매초 섞는다.
+*/
+@supports (color: color-mix(in srgb, red, blue)) {
+  .coupon-countdown-value {
+    color: color-mix(in srgb, var(--app-red) calc(var(--coupon-urgency) * 100%), var(--app-blue));
+  }
+
+  .coupon-countdown-bar i {
+    background: color-mix(in srgb, var(--app-red) calc(var(--coupon-urgency) * 100%), var(--app-blue));
+  }
+}
+
+/* color-mix를 지원하지 않으면 마지막 2초에 레드로 떨어뜨려 경고 자체는 살린다. */
+@supports not (color: color-mix(in srgb, red, blue)) {
+  .coupon-countdown[data-urgent="true"] .coupon-countdown-value {
+    color: var(--app-red);
+  }
+
+  .coupon-countdown[data-urgent="true"] .coupon-countdown-bar i {
+    background: var(--app-red);
+  }
+}
+
+.coupon-phases {
+  display: grid;
+  gap: 7px;
+  margin: 14px 22px 0;
+  padding: 12px 13px;
+  list-style: none;
+  border: 1px solid var(--app-line-soft);
+  border-radius: var(--app-radius-control);
+  background: var(--app-bg-muted);
+}
+
+.coupon-phase {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* 전체 수량이 함께 오면 남은 비율을 막대로 그린다. */
+.coupon-phases-metered .coupon-phase {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 62px;
+  align-items: center;
+}
+
+.coupon-phase-off {
+  opacity: 0.42;
+}
+
+.coupon-phase-key {
+  color: var(--app-text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.coupon-phase-bar {
+  height: 7px;
+  border-radius: 3.5px;
+  background: var(--app-line);
+  overflow: hidden;
+}
+
+.coupon-phase-bar i {
+  display: block;
+  height: 100%;
+  background: var(--app-blue);
+  transition: width 900ms var(--app-ease), background-color 500ms var(--app-ease);
+}
+
+/* 재고가 4분의 1 아래로 내려간 단계만 붉게 — 시간이 아니라 수량 경고다. */
+.coupon-phase-bar-low {
+  background: var(--app-red);
+}
+
+.coupon-phase-value {
+  color: var(--app-text);
+  font-size: 0.7rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.coupon-phases-metered .coupon-phase-value {
+  text-align: right;
+}
+
+.coupon-phase-value small {
+  color: var(--app-text-faint);
+  font-size: 0.85em;
+  font-weight: 700;
+}
+
+.coupon-modal-actions {
   display: grid;
   gap: 8px;
+  padding: 16px 22px 0;
 }
 
-.active-coupon-action button {
+.coupon-button {
   width: 100%;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-control);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: -0.012em;
+  cursor: pointer;
+  transition: background-color 180ms var(--app-ease), border-color 180ms var(--app-ease), color 180ms var(--app-ease);
 }
 
-.active-coupon-action > span {
+.coupon-button-solid {
+  border-color: #4691cc;
+  background: var(--app-blue);
+  color: #08243b;
+}
+
+.coupon-button-solid:hover:not(:disabled) {
+  background: #6fb5ea;
+}
+
+.coupon-button-ghost {
+  border-color: var(--app-line);
+  background: var(--app-bg-muted);
+  color: var(--app-text);
+}
+
+.coupon-button-ghost:hover {
+  border-color: var(--app-text-faint);
+}
+
+.coupon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.coupon-modal-foot {
+  margin: 1px 0 0;
   color: var(--app-text-faint);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   text-align: center;
 }
+
+.coupon-modal .coupon-feedback,
+.coupon-modal .coupon-poll-copy {
+  margin: 14px 22px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coupon-countdown-value,
+  .coupon-countdown-bar i,
+  .coupon-button,
+  .coupon-modal-close {
+    transition: none;
+  }
+}
+
 
 .coupon-feedback,
 .coupon-poll-copy {
@@ -1142,42 +1446,25 @@
     grid-template-columns: 1fr;
   }
 
-  .active-coupon {
-    grid-template-columns: 1fr;
-    gap: 20px;
-    padding: 18px;
+  .coupon-modal-backdrop {
+    padding: 16px;
   }
 
-  .active-coupon-title-row {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 8px;
+  .coupon-modal-head,
+  .coupon-modal-actions,
+  .coupon-countdown {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 
-  .active-coupon-meta {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    row-gap: 12px;
+  .coupon-ticket,
+  .coupon-phases,
+  .coupon-modal .coupon-feedback,
+  .coupon-modal .coupon-poll-copy {
+    margin-left: 18px;
+    margin-right: 18px;
   }
 
-  .active-coupon-meta > div,
-  .active-coupon-meta > div:first-child {
-    display: grid;
-    gap: 4px;
-    padding: 0 12px 0 0;
-  }
-
-  .active-coupon-meta > div:nth-child(2) {
-    border-right: none;
-  }
-
-  .active-coupon-meta > div:last-child {
-    grid-column: 1 / -1;
-  }
-
-  .active-coupon-action {
-    width: 100%;
-  }
 
   .form-actions > button,
   .inline-admin-form > button {
