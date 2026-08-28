@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { claimCouponEvent, fetchActiveCouponEvent } from '../../api/coupon.js';
+import { claimCouponEvent, fetchActiveCouponEvent, fetchMyCoupon } from '../../api/coupon.js';
 import { formatNumber } from '../../shared/utils/format.js';
 
 const ACTIVE_COUPON_POLL_MS = 1500;
@@ -92,6 +92,7 @@ export default function ActiveCouponClaim({ userId }) {
   const [submitting, setSubmitting] = useState(false);
   const [participated, setParticipated] = useState(false);
   const [claimed, setClaimed] = useState(false);
+  const [claimedBenefit, setClaimedBenefit] = useState(null);
   const [dismissed, setDismissed] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [now, setNow] = useState(() => Date.now());
@@ -107,6 +108,7 @@ export default function ActiveCouponClaim({ userId }) {
     setSubmitting(false);
     setParticipated(false);
     setClaimed(false);
+    setClaimedBenefit(null);
     setFeedback(null);
   }, []);
 
@@ -226,14 +228,29 @@ export default function ActiveCouponClaim({ userId }) {
     setSubmitting(true);
     setFeedback(null);
     try {
-      await claimCouponEvent(
+      const result = await claimCouponEvent(
         requestUserId,
         activeEvent.couponEventId,
         requestOccurrenceId,
       );
       if (!isCurrentRequest()) return;
+
+      const issuedPhase = activeEvent.phases?.find(
+        (phase) => String(phase.couponEventItemId) === String(result?.couponEventItemId),
+      ) ?? null;
+      setClaimedBenefit(issuedPhase);
       setParticipated(true);
       setClaimed(true);
+
+      if (result?.couponId) {
+        fetchMyCoupon(requestUserId, result.couponId)
+          .then((coupon) => {
+            if (isCurrentRequest()) setClaimedBenefit(coupon);
+          })
+          .catch(() => {
+            // 발급은 이미 완료됐다. 상세 조회 실패 시 발급 항목의 혜택을 유지한다.
+          });
+      }
     } catch (requestError) {
       if (!isCurrentRequest()) return;
       const message = CLAIM_ERROR_MESSAGES[requestError.code] ?? requestError.message;
@@ -281,13 +298,17 @@ export default function ActiveCouponClaim({ userId }) {
             ? `${discount.amount}${discount.symbol} 쿠폰 받기`
             : '쿠폰 받기';
 
+  const ticketDiscount = claimed ? formatDiscount(claimedBenefit) : discount;
+
   // 할인 값이 오는 응답이면 그 값이 티켓의 주인공이고 이름은 부제로 내려간다.
   // 값이 없는 응답에서는 이벤트 이름 하나만 두어 같은 문구를 두 번 읽히지 않는다.
   const ticket = (
     <div className="coupon-ticket">
-      {discount ? (
+      {ticketDiscount ? (
         <>
-          <p className="coupon-ticket-amount">{discount.amount}<small>{discount.unit}</small></p>
+          <p className="coupon-ticket-amount">
+            {ticketDiscount.amount}<small>{ticketDiscount.unit}</small>
+          </p>
           <p className="coupon-ticket-name">
             {claimed || !current.hasNext ? activeEvent.eventName : '지금 받을 수 있는 혜택'}
           </p>
