@@ -189,6 +189,7 @@
 
 .status-closed,
 .status-used,
+.status-expired,
 .status-refunded {
   color: var(--app-text-faint);
 }

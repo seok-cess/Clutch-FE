@@ -269,8 +269,10 @@ export default function ActiveCouponClaim({ userId }) {
 
   const buttonLabel = submitting
     ? '요청 중'
-    : participated
-      ? '요청 접수됨'
+    : claimed
+      ? '발급 완료'
+      : participated
+        ? '참여 완료'
       : locallyExpired
         ? '이벤트 종료'
         : soldOut
