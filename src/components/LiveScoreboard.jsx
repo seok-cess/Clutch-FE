@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { fetchMatchTeams } from '../api.js';
-import BettingPanel from '../features/betting/BettingPanel.jsx';
 import GameBoard from './GameBoard.jsx';
 import WatchPointPanel from './WatchPointPanel.jsx';
 import WatchPointPreview from './WatchPointPreview.jsx';
@@ -81,10 +80,7 @@ export default function LiveScoreboard({
         : <p className="muted">밴픽/대기 중 — 게임이 시작되면 스코어보드가 표시됩니다.</p>}
 
       {preview ? (
-        <div className="live-action-grid">
-          <WatchPointPreview />
-          <BettingPanel match={match} userId={userId} preview />
-        </div>
+        <WatchPointPreview />
       ) : (
         <WatchPointPanel
           matchId={match.matchId}

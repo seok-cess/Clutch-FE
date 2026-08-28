@@ -850,20 +850,6 @@
   }
 }
 
-.page-live .live-action-grid {
-  gap: 16px;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top-color: var(--app-line-soft);
-}
-
-.page-live .live-action-grid .watch-point-panel,
-.page-live .live-action-grid .betting-panel {
-  border-color: var(--app-line-soft);
-  border-radius: var(--app-radius);
-  background: #0e1217;
-}
-
 .page-live .betting-submit button:not(:disabled),
 .page-live .watch-point-footer button:not(:disabled) {
   border-color: var(--app-gold);

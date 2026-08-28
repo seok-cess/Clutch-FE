@@ -255,7 +255,7 @@ export default function SamplePage() {
 
       <ActiveCouponClaim userId={userId} />
 
-      {/* 라이브 페이지와 같은 구성 — 스코어보드 + 시청 포인트 + 배팅.
+      {/* 라이브 페이지와 같은 구성 — 스코어보드 + 시청 포인트.
           LiveScoreboard 의 preview 모드가 서버 호출 없이 동작한다. */}
       <LiveScoreboard
         match={sampleMatch}
