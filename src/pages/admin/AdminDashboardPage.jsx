@@ -69,6 +69,29 @@ function InlineError({ children, onRetry }) {
   );
 }
 
+function getTrendCount(value) {
+  const count = Number(value);
+  return Number.isFinite(count) && count > 0 ? count : 0;
+}
+
+function getTrendScale(maxCount) {
+  const roughStep = maxCount / 4;
+  const power = 10 ** Math.floor(Math.log10(roughStep));
+  const error = roughStep / power;
+  const factor = error >= Math.sqrt(50)
+    ? 10
+    : error >= Math.sqrt(10)
+      ? 5
+      : error >= Math.sqrt(2)
+        ? 2
+        : 1;
+  const step = Math.max(1, factor * power);
+  const max = Math.max(step, Math.ceil(maxCount / step) * step);
+  const ticks = Array.from({ length: Math.round(max / step) + 1 }, (_, index) => index * step);
+
+  return { max, ticks };
+}
+
 function IssuanceTrend({ items }) {
   if (items.length === 0) {
     return (
@@ -79,9 +102,15 @@ function IssuanceTrend({ items }) {
     );
   }
 
-  const maxCount = Math.max(1, ...items.map((item) => (
-    Number(item.issuedCount ?? 0) + Number(item.failedCount ?? 0)
+  const normalizedItems = items.map((item) => ({
+    ...item,
+    issuedCount: getTrendCount(item.issuedCount),
+    failedCount: getTrendCount(item.failedCount),
+  }));
+  const maxCount = Math.max(1, ...normalizedItems.flatMap((item) => (
+    [item.issuedCount, item.failedCount]
   )));
+  const scale = getTrendScale(maxCount);
 
   return (
     <div className="dashboard-trend-chart" role="group" aria-label="날짜별 쿠폰 발급 성공 및 실패 추이">
@@ -89,24 +118,53 @@ function IssuanceTrend({ items }) {
         <span><i className="trend-issued" />발급 성공</span>
         <span><i className="trend-failed" />발급 실패</span>
       </div>
-      <div className="dashboard-trend-bars" style={{ '--trend-columns': items.length }}>
-        {items.map((item) => {
-          const issued = Number(item.issuedCount ?? 0);
-          const failed = Number(item.failedCount ?? 0);
-          return (
-            <div className="dashboard-trend-day" key={item.date}>
-              <div className="dashboard-trend-values">
-                <span>{formatNumber(issued)}</span>
-                <span>{formatNumber(failed)}</span>
-              </div>
-              <div className="dashboard-trend-columns" aria-hidden="true">
-                <i className="trend-issued" style={{ '--trend-height': `${(issued / maxCount) * 100}%` }} />
-                <i className="trend-failed" style={{ '--trend-height': `${(failed / maxCount) * 100}%` }} />
-              </div>
-              <span>{formatDate(item.date)}</span>
+      <div className="dashboard-trend-viewport">
+        <div className="dashboard-trend-y-axis" aria-hidden="true">
+          {scale.ticks.map((tick) => (
+            <span key={tick} style={{ '--trend-position': `${(tick / scale.max) * 100}%` }}>
+              {formatNumber(tick)}
+            </span>
+          ))}
+        </div>
+        <div className="dashboard-trend-scroll">
+          <div className="dashboard-trend-bars" style={{ '--trend-columns': normalizedItems.length }}>
+            <div className="dashboard-trend-grid" aria-hidden="true">
+              {scale.ticks.map((tick) => (
+                <i key={tick} style={{ '--trend-position': `${(tick / scale.max) * 100}%` }} />
+              ))}
             </div>
-          );
-        })}
+            {normalizedItems.map((item) => {
+              const issued = item.issuedCount;
+              const failed = item.failedCount;
+              return (
+                <div
+                  className="dashboard-trend-day"
+                  key={item.date}
+                  role="img"
+                  aria-label={`${formatDate(item.date)}, 발급 성공 ${formatNumber(issued)}건, 발급 실패 ${formatNumber(failed)}건`}
+                >
+                  <div className="dashboard-trend-values" aria-hidden="true">
+                    <span>{formatNumber(issued)}</span>
+                    <span>{failed > 0 ? formatNumber(failed) : null}</span>
+                  </div>
+                  <div className="dashboard-trend-columns" aria-hidden="true">
+                    <i
+                      className="trend-issued"
+                      data-positive={issued > 0 || undefined}
+                      style={{ '--trend-height': `${(issued / scale.max) * 100}%` }}
+                    />
+                    <i
+                      className="trend-failed"
+                      data-positive={failed > 0 || undefined}
+                      style={{ '--trend-height': `${(failed / scale.max) * 100}%` }}
+                    />
+                  </div>
+                  <span aria-hidden="true">{formatDate(item.date)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );

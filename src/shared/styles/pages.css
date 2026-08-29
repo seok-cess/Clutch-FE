@@ -1091,7 +1091,6 @@
 }
 
 .dashboard-trend-chart {
-  overflow-x: auto;
   padding-top: 4px;
 }
 
@@ -1115,19 +1114,67 @@
   display: block;
 }
 
+.dashboard-trend-viewport {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.dashboard-trend-y-axis {
+  position: relative;
+  height: 148px;
+  margin-top: 26px;
+  color: var(--app-text-faint);
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.dashboard-trend-y-axis span {
+  position: absolute;
+  right: 0;
+  bottom: var(--trend-position);
+  transform: translateY(50%);
+}
+
+.dashboard-trend-scroll {
+  min-width: 0;
+  overflow-x: auto;
+}
+
 .dashboard-trend-bars {
+  position: relative;
   min-width: max(100%, calc(var(--trend-columns) * 38px));
-  height: 214px;
+  height: 208px;
   display: grid;
   grid-template-columns: repeat(var(--trend-columns), minmax(28px, 1fr));
   align-items: end;
   gap: 8px;
-  margin-top: 12px;
-  padding-top: 8px;
-  border-bottom: 1px solid var(--app-line);
+}
+
+.dashboard-trend-grid {
+  position: absolute;
+  z-index: 0;
+  top: 26px;
+  right: 0;
+  left: 0;
+  height: 148px;
+  pointer-events: none;
+}
+
+.dashboard-trend-grid i {
+  position: absolute;
+  right: 0;
+  bottom: var(--trend-position);
+  left: 0;
+  height: 1px;
+  background: var(--app-line-soft);
 }
 
 .dashboard-trend-day {
+  position: relative;
+  z-index: 1;
   min-width: 0;
   display: grid;
   grid-template-rows: 22px 148px 30px;
@@ -1160,6 +1207,10 @@
   height: var(--trend-height);
   min-height: 0;
   display: block;
+}
+
+.dashboard-trend-columns i[data-positive="true"] {
+  min-height: 3px;
 }
 
 .dashboard-trend-day > span {
