@@ -10,6 +10,7 @@ import CouponEventsPage from '../pages/admin/CouponEventsPage.jsx';
 import CouponClaimHistoryPage from '../pages/admin/CouponClaimHistoryPage.jsx';
 import CouponsPage from '../pages/admin/CouponsPage.jsx';
 import CouponTypesPage from '../pages/admin/CouponTypesPage.jsx';
+import SourceControlPage from '../pages/admin/SourceControlPage.jsx';
 import DiagnosticsPage from '../pages/user/DiagnosticsPage.jsx';
 import SamplePage from '../pages/user/SamplePage.jsx';
 import HomePage from '../pages/user/HomePage.jsx';
@@ -48,6 +49,7 @@ export default function AppRoutes() {
 
       <Route path="admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboardPage />} />
+        <Route path="source-control" element={<SourceControlPage />} />
         <Route path="coupon-events" element={<CouponEventsPage />} />
         <Route path="coupon-events/new" element={<CouponEventEditorPage />} />
         <Route path="coupon-events/:couponEventId" element={<CouponEventDetailPage />} />

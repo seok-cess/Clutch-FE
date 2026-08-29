@@ -13,6 +13,7 @@ const ADMIN_NAVIGATION = [
   { to: '/admin/coupons', label: '발급 쿠폰 취소', nested: true },
   { label: '데이터 운영', section: true },
   { to: '/admin/backfill', label: '데이터 백필' },
+  { to: '/admin/source-control', label: '소스 제어' },
 ];
 
 export default function AdminLayout() {
