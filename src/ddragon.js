@@ -14,6 +14,7 @@ const FALLBACK_VERSION = '16.15.1';
 let version = FALLBACK_VERSION;
 let itemMeta = {};    // id → { name, description, gold }
 let runeMeta = {};    // id → { name, icon, longDesc }
+let champMeta = {};   // id("Aatrox") 와 숫자키 둘 다 → 한글 이름
 let ready = false;
 
 /** 스탯 샤드는 runesReforged.json 에 없어 별도 매핑 (2026-08 실호출로 아이콘 경로 확인) */
@@ -92,9 +93,10 @@ export async function initDDragon() {
     // 버전 조회 실패 — fallback 버전으로 계속 진행
   }
 
-  const [items, runes] = await Promise.allSettled([
+  const [items, runes, champions] = await Promise.allSettled([
     fetch(`${BASE}/cdn/${version}/data/${LOCALE}/item.json`).then((r) => r.json()),
     fetch(`${BASE}/cdn/${version}/data/${LOCALE}/runesReforged.json`).then((r) => r.json()),
+    fetch(`${BASE}/cdn/${version}/data/${LOCALE}/champion.json`).then((r) => r.json()),
   ]);
 
   if (items.status === 'fulfilled' && items.value?.data) {
@@ -112,6 +114,13 @@ export async function initDDragon() {
       }
     }
   }
+  if (champions.status === 'fulfilled' && champions.value?.data) {
+    // 소스가 챔피언을 문자열 id("Aatrox")로 주지만 숫자 키로 오는 경로도 있어 둘 다 담는다.
+    for (const [id, v] of Object.entries(champions.value.data)) {
+      champMeta[id] = v.name;
+      if (v.key) champMeta[String(v.key)] = v.name;
+    }
+  }
   ready = true;
 }
 
@@ -124,6 +133,10 @@ export const itemGold = (id) => itemMeta[String(id)]?.gold ?? null;
 
 export const championIcon = (championId) =>
   `${BASE}/cdn/${version}/img/champion/${championId}.png`;
+
+/** 챔피언 한글명. CDN 을 못 받았으면 영문 id 로 degrade 된다 */
+export const championName = (championId) =>
+  champMeta[String(championId)] ?? championId ?? '';
 
 /** 룬(키스톤·일반·트리) 또는 스탯 샤드의 아이콘 URL. 알 수 없으면 null */
 export function runeIcon(id) {

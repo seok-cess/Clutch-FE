@@ -1,6 +1,6 @@
 import {
   itemIcon, itemName, itemDescription, itemGold,
-  runeIcon, runeName, runeDescription, championIcon,
+  runeIcon, runeName, runeDescription, championIcon, championName,
 } from '../ddragon.js';
 import IconTip from './IconTip.jsx';
 
@@ -95,10 +95,10 @@ export default function DetailsTable({ details }) {
                 <td className="player-name c-player">
                   <span className="player-cell">
                     {p.championId && (
-                      <IconTip label={p.championId}>
+                      <IconTip label={championName(p.championId)}>
                         <img
                           src={championIcon(p.championId)}
-                          alt={p.championId}
+                          alt={championName(p.championId)}
                           className="champ-icon"
                           loading="lazy"
                           onError={(e) => { e.currentTarget.style.display = 'none'; }}
