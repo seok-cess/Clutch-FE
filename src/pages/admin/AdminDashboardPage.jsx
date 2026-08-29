@@ -37,6 +37,67 @@ function formatRate(value) {
   return `${rate.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}%`;
 }
 
+function normalizeCount(value) {
+  const count = Number(value ?? 0);
+  return Number.isFinite(count) && count > 0 ? count : 0;
+}
+
+function normalizeKstDateTime(value) {
+  if (!value) return null;
+  const source = String(value);
+  return /(?:Z|[+-]\d{2}:\d{2})$/i.test(source) ? source : `${source}+09:00`;
+}
+
+function formatKstTime(value) {
+  const source = normalizeKstDateTime(value);
+  if (!source) return null;
+  const date = new Date(source);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function getKstDateKey(value) {
+  const source = normalizeKstDateTime(value);
+  if (!source) return null;
+  const date = new Date(source);
+  if (Number.isNaN(date.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const part = (type) => parts.find((item) => item.type === type)?.value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+function formatTrendValue(value, compact) {
+  if (!compact) return formatNumber(value);
+  return new Intl.NumberFormat('ko-KR', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+function getTrendScale(values) {
+  const maximum = Math.max(0, ...values);
+  if (maximum === 0) return { maximum: 1, ticks: [0] };
+
+  const roughStep = maximum / 5;
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const fraction = roughStep / magnitude;
+  const niceFraction = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
+  const step = Math.max(1, niceFraction * magnitude);
+  const scaleMaximum = Math.ceil(maximum / step) * step;
+  const ticks = [];
+  for (let value = scaleMaximum; value >= 0; value -= step) ticks.push(value);
+  return { maximum: scaleMaximum, ticks };
+}
+
 function getIssueRate(event) {
   const issued = Number(event.issuedQuantity ?? 0);
   const total = Number(event.totalQuantity ?? 0);
@@ -69,30 +130,64 @@ function InlineError({ children, onRetry }) {
   );
 }
 
-function getTrendCount(value) {
-  const count = Number(value);
-  return Number.isFinite(count) && count > 0 ? count : 0;
+function TrendSeries({ items, values, scale, tone, title, showDates, partialDate }) {
+  const compactValues = items.length > 7;
+
+  return (
+    <section className={`dashboard-trend-series dashboard-trend-series-${tone}`} aria-label={title}>
+      <div className="dashboard-trend-series-heading">
+        <strong>{title}</strong>
+        <span><i aria-hidden="true" />별도 눈금</span>
+      </div>
+      <div className="dashboard-trend-plot">
+        <div className="dashboard-trend-axis" aria-hidden="true">
+          {scale.ticks.map((tick) => (
+            <span key={tick} style={{ '--trend-tick-position': `${(tick / scale.maximum) * 100}%` }}>
+              {formatTrendValue(tick, true)}
+            </span>
+          ))}
+        </div>
+        <div className="dashboard-trend-plot-body">
+          <div className="dashboard-trend-grid" aria-hidden="true">
+            {scale.ticks.map((tick) => (
+              <i key={tick} style={{ '--trend-tick-position': `${(tick / scale.maximum) * 100}%` }} />
+            ))}
+          </div>
+          <div className="dashboard-trend-columns" style={{ '--trend-columns': items.length }}>
+            {items.map((item, index) => {
+              const value = values[index];
+              const isPartial = item.date === partialDate;
+              return (
+                <div
+                  className={`dashboard-trend-day${isPartial ? ' is-partial' : ''}`}
+                  key={item.date}
+                >
+                  <span className="dashboard-trend-value" title={`${formatNumber(value)}건`}>
+                    {formatTrendValue(value, compactValues)}
+                  </span>
+                  <span className="dashboard-trend-column" aria-hidden="true">
+                    <i
+                      data-positive={value > 0 ? 'true' : 'false'}
+                      style={{ '--trend-height': `${(value / scale.maximum) * 100}%` }}
+                    />
+                  </span>
+                  {showDates && (
+                    <span className="dashboard-trend-date">
+                      {formatDate(item.date)}
+                      {isPartial && <small>부분 집계</small>}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
-function getTrendScale(maxCount) {
-  const roughStep = maxCount / 4;
-  const power = 10 ** Math.floor(Math.log10(roughStep));
-  const error = roughStep / power;
-  const factor = error >= Math.sqrt(50)
-    ? 10
-    : error >= Math.sqrt(10)
-      ? 5
-      : error >= Math.sqrt(2)
-        ? 2
-        : 1;
-  const step = Math.max(1, factor * power);
-  const max = Math.max(step, Math.ceil(maxCount / step) * step);
-  const ticks = Array.from({ length: Math.round(max / step) + 1 }, (_, index) => index * step);
-
-  return { max, ticks };
-}
-
-function IssuanceTrend({ items }) {
+function IssuanceTrend({ items, generatedAt, partialDate }) {
   if (items.length === 0) {
     return (
       <div className="dashboard-empty">
@@ -102,71 +197,63 @@ function IssuanceTrend({ items }) {
     );
   }
 
-  const normalizedItems = items.map((item) => ({
-    ...item,
-    issuedCount: getTrendCount(item.issuedCount),
-    failedCount: getTrendCount(item.failedCount),
-  }));
-  const maxCount = Math.max(1, ...normalizedItems.flatMap((item) => (
-    [item.issuedCount, item.failedCount]
-  )));
-  const scale = getTrendScale(maxCount);
+  const issuedValues = items.map((item) => normalizeCount(item.issuedCount));
+  const failedValues = items.map((item) => normalizeCount(item.failedCount));
+  const issuedScale = getTrendScale(issuedValues);
+  const failedScale = getTrendScale(failedValues);
+  const totalFailed = failedValues.reduce((sum, value) => sum + value, 0);
+  const generatedTime = formatKstTime(generatedAt);
 
   return (
-    <div className="dashboard-trend-chart" role="group" aria-label="날짜별 쿠폰 발급 성공 및 실패 추이">
-      <div className="dashboard-trend-legend" aria-hidden="true">
-        <span><i className="trend-issued" />발급 성공</span>
-        <span><i className="trend-failed" />발급 실패</span>
+    <figure className="dashboard-trend-chart">
+      <figcaption className="dashboard-visually-hidden">
+        날짜별 쿠폰 발급 성공과 실패 추이입니다. 두 그래프는 각각 독립된 세로축을 사용합니다.
+      </figcaption>
+      <div className="dashboard-trend-meta">
+        {partialDate && generatedTime && (
+          <span className="dashboard-trend-partial">
+            오늘 데이터 · <time dateTime={normalizeKstDateTime(generatedAt)}>{generatedTime}까지 집계</time>
+          </span>
+        )}
+        <span className={`dashboard-trend-failure-summary${totalFailed > 0 ? ' has-failures' : ''}`}>
+          선택 기간 실패 {formatNumber(totalFailed)}건
+        </span>
       </div>
-      <div className="dashboard-trend-viewport">
-        <div className="dashboard-trend-y-axis" aria-hidden="true">
-          {scale.ticks.map((tick) => (
-            <span key={tick} style={{ '--trend-position': `${(tick / scale.max) * 100}%` }}>
-              {formatNumber(tick)}
-            </span>
+      <div className="dashboard-trend-scroll" tabIndex="0" aria-label="발급 추이 그래프. 가로 방향으로 스크롤할 수 있습니다.">
+        <div className="dashboard-trend-inner" style={{ '--trend-columns': items.length }} aria-hidden="true">
+          <TrendSeries
+            items={items}
+            values={issuedValues}
+            scale={issuedScale}
+            tone="issued"
+            title="발급 성공"
+            showDates={false}
+          />
+          <TrendSeries
+            items={items}
+            values={failedValues}
+            scale={failedScale}
+            tone="failed"
+            title="발급 실패"
+            showDates
+            partialDate={partialDate}
+          />
+        </div>
+      </div>
+      <table className="dashboard-visually-hidden">
+        <caption>날짜별 쿠폰 발급 성공과 실패 건수</caption>
+        <thead><tr><th>날짜</th><th>발급 성공</th><th>발급 실패</th></tr></thead>
+        <tbody>
+          {items.map((item, index) => (
+            <tr key={item.date}>
+              <th>{formatDate(item.date)}{item.date === partialDate ? ' 부분 집계' : ''}</th>
+              <td>{formatNumber(issuedValues[index])}건</td>
+              <td>{formatNumber(failedValues[index])}건</td>
+            </tr>
           ))}
-        </div>
-        <div className="dashboard-trend-scroll">
-          <div className="dashboard-trend-bars" style={{ '--trend-columns': normalizedItems.length }}>
-            <div className="dashboard-trend-grid" aria-hidden="true">
-              {scale.ticks.map((tick) => (
-                <i key={tick} style={{ '--trend-position': `${(tick / scale.max) * 100}%` }} />
-              ))}
-            </div>
-            {normalizedItems.map((item) => {
-              const issued = item.issuedCount;
-              const failed = item.failedCount;
-              return (
-                <div
-                  className="dashboard-trend-day"
-                  key={item.date}
-                  role="img"
-                  aria-label={`${formatDate(item.date)}, 발급 성공 ${formatNumber(issued)}건, 발급 실패 ${formatNumber(failed)}건`}
-                >
-                  <div className="dashboard-trend-values" aria-hidden="true">
-                    <span>{formatNumber(issued)}</span>
-                    <span>{failed > 0 ? formatNumber(failed) : null}</span>
-                  </div>
-                  <div className="dashboard-trend-columns" aria-hidden="true">
-                    <i
-                      className="trend-issued"
-                      data-positive={issued > 0 || undefined}
-                      style={{ '--trend-height': `${(issued / scale.max) * 100}%` }}
-                    />
-                    <i
-                      className="trend-failed"
-                      data-positive={failed > 0 || undefined}
-                      style={{ '--trend-height': `${(failed / scale.max) * 100}%` }}
-                    />
-                  </div>
-                  <span aria-hidden="true">{formatDate(item.date)}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
+        </tbody>
+      </table>
+    </figure>
   );
 }
 
@@ -219,9 +306,16 @@ export default function AdminDashboardPage() {
   const backfill = backfillState.data;
   const dashboardUnavailable = dashboardState.loading || Boolean(dashboardState.error);
   const dateLabel = date === getKstToday() ? '오늘' : '기준일';
-  const generatedAt = dashboard?.generatedAt
-    ? formatDateTime(`${dashboard.generatedAt}+09:00`, { timeZone: 'Asia/Seoul' })
+  const generatedAtValue = normalizeKstDateTime(dashboard?.generatedAt);
+  const generatedAt = generatedAtValue
+    ? formatDateTime(generatedAtValue, { timeZone: 'Asia/Seoul' })
     : '-';
+  const today = getKstToday();
+  const partialDate = date === today
+    && getKstDateKey(dashboard?.generatedAt) === today
+    && trend.some((item) => item.date === today)
+    ? today
+    : null;
 
   return (
     <div className="admin-page admin-home-page">
@@ -304,7 +398,13 @@ export default function AdminDashboardPage() {
             <div className="dashboard-empty"><strong>발급 추이를 표시할 수 없습니다.</strong></div>
           ) : dashboardState.loading ? (
             <div className="dashboard-loading" role="status">발급 추이를 불러오는 중입니다.</div>
-          ) : <IssuanceTrend items={trend} />}
+          ) : (
+            <IssuanceTrend
+              items={trend}
+              generatedAt={dashboard?.generatedAt}
+              partialDate={partialDate}
+            />
+          )}
         </section>
 
         <aside className="data-surface dashboard-alert-surface" aria-labelledby="dashboard-alert-title">
