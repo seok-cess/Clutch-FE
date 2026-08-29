@@ -96,6 +96,7 @@ src/
 | URL | 화면 |
 |---|---|
 | `/admin` | 운영 요약 |
+| `/admin/source-control` | 라이브 데이터 소스 전환 |
 | `/admin/coupon-events` | 쿠폰 이벤트 목록 |
 | `/admin/coupon-events/new` | 쿠폰 이벤트 생성 |
 | `/admin/coupon-events/:couponEventId` | 쿠폰 이벤트 상세와 수정 |

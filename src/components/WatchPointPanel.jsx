@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { claimWatchPoint, sendWatchHeartbeat, startWatchSession } from '../api.js';
 
 const CLAIM_INTERVAL_SECONDS = 5 * 60;
@@ -8,7 +9,7 @@ function formatTime(totalSeconds) {
   const safeSeconds = Math.max(0, Number(totalSeconds) || 0);
   const minutes = Math.floor(safeSeconds / 60);
   const seconds = safeSeconds % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
 function initialReward() {
@@ -21,21 +22,22 @@ function initialReward() {
   };
 }
 
-/** 실제 시청 세션의 heartbeat와 포인트 수령 상태를 표시한다. */
+/** 기존 시청 세션 로직을 유지하고 표시 결과만 사용자 헤더로 보낸다. */
 export default function WatchPointPanel({ matchId, userId, enabled, active, onActivate }) {
   const [session, setSession] = useState(null);
   const [reward, setReward] = useState(initialReward);
   const [displayedSeconds, setDisplayedSeconds] = useState(0);
-  const [totalPoint, setTotalPoint] = useState(null);
   const [starting, setStarting] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [message, setMessage] = useState('시청 시작 버튼을 누르면 시간이 누적됩니다.');
   const [error, setError] = useState(null);
+  const [awardedPoint, setAwardedPoint] = useState(null);
   const sessionRef = useRef(null);
   const sequenceRef = useRef(0);
   const heartbeatTimerRef = useRef(null);
   const heartbeatInFlightRef = useRef(false);
   const generationRef = useRef(0);
+  const awardTimerRef = useRef(null);
 
   const clearHeartbeatTimer = useCallback(() => {
     if (heartbeatTimerRef.current != null) {
@@ -137,7 +139,6 @@ export default function WatchPointPanel({ matchId, userId, enabled, active, onAc
         activeSession.sessionKey,
         reward.rewardSequence,
       );
-      setTotalPoint(result.totalPoint);
       setDisplayedSeconds(0);
       setReward((currentReward) => ({
         ...currentReward,
@@ -147,6 +148,9 @@ export default function WatchPointPanel({ matchId, userId, enabled, active, onAc
         remainingSeconds: CLAIM_INTERVAL_SECONDS,
       }));
       setMessage(`${result.awardedPoint}P를 받았습니다. 현재 세트 상태를 확인합니다.`);
+      setAwardedPoint(result.awardedPoint);
+      if (awardTimerRef.current != null) window.clearTimeout(awardTimerRef.current);
+      awardTimerRef.current = window.setTimeout(() => setAwardedPoint(null), 900);
       await heartbeat();
     } catch (requestError) {
       setError(requestError.message);
@@ -162,7 +166,6 @@ export default function WatchPointPanel({ matchId, userId, enabled, active, onAc
         : '다른 경기 시청 중입니다. 이 경기로 전환할 수 있습니다.'
       : '진행 중인 세트에서만 시청 시간이 누적됩니다.');
     setError(null);
-    setTotalPoint(null);
     const autoStartTimer = active && enabled && userId
       ? window.setTimeout(start, 0)
       : null;
@@ -180,19 +183,14 @@ export default function WatchPointPanel({ matchId, userId, enabled, active, onAc
     return () => document.removeEventListener('visibilitychange', resumeHeartbeat);
   }, [heartbeat]);
 
+  useEffect(() => () => {
+    if (awardTimerRef.current != null) window.clearTimeout(awardTimerRef.current);
+  }, []);
+
   const claimable = reward.rewardState === 'CLAIMABLE';
   const paused = reward.rewardState === 'PAUSED';
   const accumulating = reward.rewardState === 'ACCUMULATING';
   const watching = session != null && active;
-  const stateLabel = claimable
-    ? '수령 가능'
-    : paused
-      ? '세트 대기'
-      : accumulating
-        ? '시청 중'
-        : watching
-          ? '상태 확인'
-          : '대기';
 
   useEffect(() => {
     if (!watching || !accumulating || !enabled) return undefined;
@@ -202,56 +200,57 @@ export default function WatchPointPanel({ matchId, userId, enabled, active, onAc
     return () => window.clearInterval(displayTimer);
   }, [accumulating, enabled, watching]);
 
-  const displayedRemainingSeconds = Math.max(0, CLAIM_INTERVAL_SECONDS - displayedSeconds);
+  const headerTarget = document.getElementById('watch-reward-header-slot');
+  if (!headerTarget || !enabled) return null;
 
-  return (
-    <div className="watch-point-panel">
-      <div className="watch-point-heading">
-        <div>
-          <span className="kicker">WATCH REWARD</span>
-          <h3>시청 포인트</h3>
-        </div>
-        <span className={`watch-state ${claimable ? 'claimable' : ''}`}>{stateLabel}</span>
-      </div>
+  const progress = Math.min(100, (displayedSeconds / CLAIM_INTERVAL_SECONDS) * 100);
+  const stateLabel = error
+    ? `시청 세션 연결 실패: ${error}`
+    : starting || !watching
+      ? '시청 세션 연결 중'
+      : claimable
+        ? `${reward.rewardPoint}포인트 보상 받기`
+        : paused
+          ? '세트 대기 중. 시청 시간 적립 일시 정지'
+          : '시청 시간 적립 중';
+  const canStart = !watching && enabled && !starting;
 
-      <div className="watch-timer-row">
-        <div className="watch-timer">
-          <strong>{formatTime(displayedSeconds)}</strong>
-          <span>/ {formatTime(CLAIM_INTERVAL_SECONDS)}</span>
-        </div>
-        <div className="watch-point-balance">
-          <span>보유 포인트</span>
-          <strong>{totalPoint == null ? '수령 후 표시' : `${totalPoint.toLocaleString()}P`}</strong>
-        </div>
-      </div>
-
-      <progress value={displayedSeconds} max={CLAIM_INTERVAL_SECONDS}>
-        {displayedSeconds} / {CLAIM_INTERVAL_SECONDS}
-      </progress>
-
-      <div className="watch-point-footer">
-        <div>
-          <span>{reward.rewardSequence}회차 · +{reward.rewardPoint}P</span>
-          <small>{claimable
-            ? '수령할 때까지 시간이 더 누적되지 않습니다.'
-            : `${formatTime(displayedRemainingSeconds)} 남음`}</small>
-        </div>
-        {!watching ? (
-          <button
-            type="button"
-            onClick={() => (active ? start() : onActivate(matchId))}
-            disabled={!enabled || starting}
-          >
-            {starting ? '시작 중' : active ? '시청 시작' : '이 경기 시청'}
-          </button>
-        ) : (
-          <button type="button" onClick={claim} disabled={!claimable || claiming}>
-            {claiming ? '수령 중' : claimable ? `${reward.rewardPoint}P 받기` : '시청 중'}
-          </button>
-        )}
-      </div>
-
-      <p className="watch-point-message" role="status">{error ?? message}</p>
-    </div>
+  return createPortal(
+    <button
+      className={`watch-reward-header${claimable ? ' is-claimable' : ''}${awardedPoint != null ? ' is-awarded' : ''}`}
+      type="button"
+      onClick={() => {
+        if (claimable) {
+          claim();
+        } else if (!watching) {
+          if (active) start();
+          else onActivate(matchId);
+        }
+      }}
+      disabled={watching ? !claimable || claiming : !canStart}
+      aria-label={stateLabel}
+      title={error ?? message}
+    >
+      <span className="watch-reward-coin" aria-hidden="true">P</span>
+      <span className="watch-reward-copy">
+        <span className="watch-reward-time">
+          {error
+            ? '시청 시작'
+            : starting || !watching
+              ? '연결 중'
+              : `${formatTime(displayedSeconds)} / ${formatTime(CLAIM_INTERVAL_SECONDS)}`}
+        </span>
+        <span className="watch-reward-progress" aria-hidden="true">
+          <span style={{ width: `${progress}%` }} />
+        </span>
+      </span>
+      <span className="watch-reward-action" aria-hidden="true">
+        {claiming ? '수령 중' : claimable ? '받기' : ''}
+      </span>
+      {awardedPoint != null && (
+        <span className="watch-reward-award" role="status">+{awardedPoint}P</span>
+      )}
+    </button>,
+    headerTarget,
   );
 }

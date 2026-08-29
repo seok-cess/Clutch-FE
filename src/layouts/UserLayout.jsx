@@ -41,6 +41,7 @@ export default function UserLayout() {
         </nav>
 
         <div className="user-tools">
+          <div id="watch-reward-header-slot" className="watch-reward-header-slot" />
           <label className="user-id-field">
             <span>USER ID</span>
             <input
