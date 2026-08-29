@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { InhibitorIcon, TowerIcon } from './icons.jsx';
-import { championIcon, dragonName, dragonDesc, dragonIcon } from '../ddragon.js';
+import { championIcon, championName, dragonName, dragonDesc, dragonIcon } from '../ddragon.js';
 import IconTip from './IconTip.jsx';
 
 /**
@@ -147,10 +147,10 @@ function PlayerTable({ team, side }) {
       cell: (p) => (
         <span className="player-cell">
           {p.championId && (
-            <IconTip label={p.championId}>
+            <IconTip label={championName(p.championId)}>
               <img
                 src={championIcon(p.championId)}
-                alt={p.championId}
+                alt={championName(p.championId)}
                 className="champ-icon"
                 loading="lazy"
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
