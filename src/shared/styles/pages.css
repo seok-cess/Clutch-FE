@@ -1008,25 +1008,24 @@
 }
 
 .live-control-row {
-  --control-offset: max(0px, min(
-    160px,
-    (100vw - var(--content-max)) / 2 - 24px
-  ));
-  display: grid;
-  grid-template-columns: 230px minmax(0, 1fr) 560px;
-  align-items: center;
-  gap: 32px;
-  margin: 96px calc(var(--control-offset) * -1) 22px;
-  padding: 0 20px;
+  margin: 28px 0 22px;
 }
 
-.live-control-row > .replay-control-panel {
-  grid-column: 3;
-  width: 560px;
-  min-height: 76px;
+.live-replay-control {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 56px;
+  opacity: 0.52;
+}
+
+.live-replay-control:focus-within,
+.live-replay-control:hover {
+  opacity: 1;
+}
+
+.live-replay-control .replay-control-panel {
+  width: min(560px, 100%);
   min-width: 0;
-  display: grid;
-  align-content: center;
 }
 
 .replay-control-content {
@@ -1212,10 +1211,13 @@
     padding: 0;
   }
 
-  .live-control-row > .replay-control-panel {
-    grid-column: auto;
+  .live-replay-control {
+    margin-top: 32px;
+    opacity: 0.7;
+  }
+
+  .live-replay-control .replay-control-panel {
     width: 100%;
-    min-height: 0;
   }
 
   .live-match-selector-list,

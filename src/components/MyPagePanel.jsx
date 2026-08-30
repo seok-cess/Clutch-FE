@@ -38,7 +38,7 @@ function betLabels(bet, matches) {
 
   return {
     matchLabel,
-    pickLabel: `${matchLabel} · ${bet.setNumber}세트 · ${selectedTeamLabel ?? '선택 팀'} 승리`,
+    pickLabel: `${selectedTeamLabel ?? '선택 팀'} 승리`,
   };
 }
 
@@ -159,7 +159,6 @@ export default function MyPagePanel({ userId, matches }) {
       {!error && (
         <>
           <div className="my-point-card">
-            <span>AVAILABLE POINT</span>
             <strong>{point == null ? '-' : `${point.toLocaleString()}P`}</strong>
             <small>USER {userId}</small>
           </div>
