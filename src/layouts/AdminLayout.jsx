@@ -22,6 +22,17 @@ export default function AdminLayout() {
   const [adminId, setAdminId] = useState(
     () => window.localStorage.getItem('clutch-admin-id') ?? '1',
   );
+  // 데모 모드는 사용자 화면(UserLayout)과 같은 규칙을 쓴다: ?demo=1 로 켜고 ?demo=0 으로
+  // 끄며, sessionStorage에 남겨 같은 탭에서는 페이지를 옮겨도 유지된다.
+  const [isDemoMode] = useState(() => {
+    const demoParam = new URLSearchParams(window.location.search).get('demo');
+    if (demoParam == null) {
+      return window.sessionStorage.getItem('clutch-demo-mode') === '1';
+    }
+    const enabled = demoParam !== '0';
+    window.sessionStorage.setItem('clutch-demo-mode', enabled ? '1' : '0');
+    return enabled;
+  });
   const value = useMemo(() => ({
     adminId,
     setAdminId(nextAdminId) {
@@ -54,16 +65,18 @@ export default function AdminLayout() {
               ))}
           </nav>
           <div className="admin-sidebar-footer">
-            <label>
-              <span>ADMIN ID</span>
-              <input
-                type="number"
-                min="1"
-                value={adminId}
-                onChange={(event) => value.setAdminId(event.target.value)}
-                aria-label="관리자 ID"
-              />
-            </label>
+            {!isDemoMode && (
+              <label>
+                <span>ADMIN ID</span>
+                <input
+                  type="number"
+                  min="1"
+                  value={adminId}
+                  onChange={(event) => value.setAdminId(event.target.value)}
+                  aria-label="관리자 ID"
+                />
+              </label>
+            )}
             <NavLink to="/">사용자 화면으로</NavLink>
           </div>
         </aside>
