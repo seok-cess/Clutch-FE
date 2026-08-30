@@ -15,16 +15,30 @@ const EVENT_STATUS_LABEL = {
   CANCELLED: '취소',
 };
 
+function teamLabel(team) {
+  return team?.code ?? team?.name ?? null;
+}
+
 /** 외부 매치 ID와 팀 ID를 현재 일정 데이터의 표시 이름으로 변환한다. */
 function betLabels(bet, matches) {
   const match = matches.find((candidate) => candidate.matchId === bet.externalMatchId);
-  const selectedTeam = match?.teams?.find((team) => team.id === bet.selectedTeamId);
-  const matchLabel = match?.teams?.length
-    ? match.teams.map((team) => team.code ?? team.name).join(' vs ')
-    : `MATCH ${bet.externalMatchId}`;
+  const allTeams = matches.flatMap((candidate) => candidate.teams ?? []);
+  const teams = match?.teams?.length ? match.teams : allTeams;
+  const findTeam = (teamId) => teams.find((team) => String(team.id) === String(teamId));
+  const firstTeamLabel = bet.firstTeamCode ?? teamLabel(findTeam(bet.firstTeamId));
+  const secondTeamLabel = bet.secondTeamCode ?? teamLabel(findTeam(bet.secondTeamId));
+  const selectedTeamLabel = bet.selectedTeamId === bet.firstTeamId
+    ? firstTeamLabel
+    : bet.selectedTeamId === bet.secondTeamId
+      ? secondTeamLabel
+      : teamLabel(findTeam(bet.selectedTeamId));
+  const matchLabel = firstTeamLabel && secondTeamLabel
+    ? `${firstTeamLabel} vs ${secondTeamLabel}`
+    : '경기 정보 없음';
+
   return {
     matchLabel,
-    teamLabel: selectedTeam?.code ?? selectedTeam?.name ?? bet.selectedTeamId,
+    pickLabel: `${matchLabel} · ${bet.setNumber}세트 · ${selectedTeamLabel ?? '선택 팀'} 승리`,
   };
 }
 
@@ -50,7 +64,7 @@ function formatCreatedAt(createdAt) {
   const value = Object.fromEntries(parts
     .filter((part) => part.type !== 'literal')
     .map((part) => [part.type, part.value]));
-  return `${value.year}. ${value.month}. ${value.day}. ${value.hour}:${value.minute} KST`;
+  return `${value.year}. ${value.month}. ${value.day}. ${value.hour}:${value.minute}`;
 }
 
 /** 포인트 증감을 부호까지 포함해 목록 표기용 문자열로 만든다. */
@@ -65,10 +79,10 @@ function payoutMultiplierLabel(bet) {
   if (bet.payoutMultiplier == null) return '배당 없음';
   const multiplier = Number(bet.payoutMultiplier);
   if (!Number.isFinite(multiplier)) return '-';
-  return `${bet.payoutMultiplierConfirmed ? '확정' : '예상'} x${multiplier.toFixed(2)}`;
+  return `${bet.payoutMultiplierConfirmed ? '확정' : '예상'} ${multiplier.toFixed(1)}배`;
 }
 
-/** 배팅 상태에 맞는 실제 지급·몰수·환불 안내와 순손익을 만든다. */
+/** 배팅 상태에 맞는 실제 지급·몰수·환불 안내를 만든다. */
 function settlementLabels(bet) {
   if (bet.status === 'PLACED') {
     return { primary: '정산 대기', secondary: '마감 후 확정' };
@@ -82,13 +96,11 @@ function settlementLabels(bet) {
   if (bet.status === 'REFUNDED') {
     return {
       primary: `환불 +${bet.settlementPoint.toLocaleString()}P`,
-      secondary: `순손익 ${formatPointChange(bet.netPointChange)}`,
       tone: 'neutral',
     };
   }
   return {
     primary: `지급 +${bet.settlementPoint.toLocaleString()}P`,
-    secondary: `순손익 ${formatPointChange(bet.netPointChange)}`,
     tone: 'win',
   };
 }
@@ -165,15 +177,15 @@ export default function MyPagePanel({ userId, matches }) {
                 <table className="my-bet-table">
                   <thead>
                     <tr>
-                      <th>MATCH</th>
-                      <th>SET</th>
-                      <th>PICK</th>
-                      <th>BET</th>
-                      <th>ODDS</th>
-                      <th>SETTLEMENT</th>
-                      <th>RESULT</th>
-                      <th>EVENT</th>
-                      <th>PLACED AT</th>
+                      <th>경기</th>
+                      <th>세트</th>
+                      <th>예측</th>
+                      <th>배팅금</th>
+                      <th>배당</th>
+                      <th>정산</th>
+                      <th>결과</th>
+                      <th>진행 상태</th>
+                      <th>배팅 시각</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -184,7 +196,7 @@ export default function MyPagePanel({ userId, matches }) {
                         <tr key={bet.userBetId}>
                           <td>{labels.matchLabel}</td>
                           <td>{bet.setNumber}세트</td>
-                          <td className="my-bet-pick">{labels.teamLabel}</td>
+                          <td className="my-bet-pick">{labels.pickLabel}</td>
                           <td>{bet.amount.toLocaleString()}P</td>
                           <td className={`my-bet-odds ${bet.payoutMultiplierConfirmed ? 'confirmed' : 'estimated'}`}>
                             {payoutMultiplierLabel(bet)}
