@@ -3,14 +3,16 @@ import { NavLink, Outlet, useLocation } from 'react-router';
 import { useAppData } from '../app/AppDataProvider.jsx';
 import ErrorBoundary from '../shared/components/ErrorBoundary.jsx';
 
+/*
+  진단·샘플은 개발용 화면이라 공개 메뉴에서 뺐다.
+  라우트는 그대로 살아 있어 /diagnostics, /sample 주소로는 계속 들어갈 수 있다.
+*/
 const USER_NAVIGATION = [
   { to: '/', label: '홈', end: true },
   { to: '/live', label: '라이브', live: true },
   { to: '/schedule', label: '일정' },
   { to: '/standings', label: '순위' },
   { to: '/rewards', label: '리워드' },
-  { to: '/diagnostics', label: '진단' },
-  { to: '/sample', label: '샘플' },
 ];
 
 export default function UserLayout() {
