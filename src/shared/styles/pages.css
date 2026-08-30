@@ -724,7 +724,8 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 3px;
-  padding-bottom: 3px;
+  padding: 2px 0 2px 16px;
+  border-left: 1px solid var(--app-line-soft);
 }
 
 .point-info-hit-rate span {
@@ -733,8 +734,9 @@
 }
 
 .point-info-hit-rate strong {
-  color: var(--app-text);
-  font-size: 1.1rem;
+  color: var(--app-gold);
+  font-size: 1rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
