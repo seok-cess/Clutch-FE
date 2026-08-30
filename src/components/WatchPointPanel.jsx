@@ -248,35 +248,29 @@ export default function WatchPointPanel({ matchId, userId, enabled, active, onAc
   const canStart = !watching && enabled && !starting;
 
   return createPortal(
-    <div className="watch-reward-header-control">
-      <button
-        className={`watch-reward-header${claimable ? ' is-claimable' : ''}${awardedPoint != null ? ' is-awarded' : ''}`}
-        type="button"
-        onClick={() => {
-          if (claimable) {
-            claim();
-          } else if (!watching) {
-            if (active) start();
-            else onActivate(matchId);
-          }
-        }}
-        disabled={watching ? !claimable || claiming : !canStart}
-        aria-label={stateLabel}
-        aria-describedby={error ? 'watch-reward-feedback' : undefined}
-        title={error ?? message}
-      >
-        <span className="watch-reward-coin" aria-hidden="true">P</span>
-        <span className="watch-reward-copy">
-          <span className="watch-reward-time">
-            {error
-              ? '수령 실패'
-              : starting || !watching
-                ? '연결 중'
-                : `${formatTime(displayedSeconds)} / ${formatTime(CLAIM_INTERVAL_SECONDS)}`}
-          </span>
-          <span className="watch-reward-progress" aria-hidden="true">
-            <span style={{ width: `${progress}%` }} />
-          </span>
+    <button
+      className={`watch-reward-header${claimable ? ' is-claimable' : ''}${awardedPoint != null ? ' is-awarded' : ''}`}
+      type="button"
+      onClick={() => {
+        if (claimable) {
+          claim();
+        } else if (!watching) {
+          if (active) start();
+          else onActivate(matchId);
+        }
+      }}
+      disabled={watching ? !claimable || claiming : !canStart}
+      aria-label={stateLabel}
+      title={error ?? message}
+    >
+      <span className="watch-reward-coin" aria-hidden="true" />
+      <span className="watch-reward-copy">
+        <span className="watch-reward-time">
+          {error
+            ? '시청 시작'
+            : starting || !watching
+              ? '연결 중'
+              : `${formatTime(displayedSeconds)} / ${formatTime(CLAIM_INTERVAL_SECONDS)}`}
         </span>
         <span className="watch-reward-action" aria-hidden="true">
           {claiming ? '수령 중' : claimable ? '받기' : ''}
