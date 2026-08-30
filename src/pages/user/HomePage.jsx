@@ -13,6 +13,7 @@ export default function HomePage() {
     champions,
     scoreboard,
     error,
+    userId,
   } = useAppData();
 
   return (
@@ -26,6 +27,7 @@ export default function HomePage() {
         playerKda={playerKda}
         champions={champions}
         scoreboard={scoreboard}
+        userId={userId}
         onOpenMatch={(match) => navigate(`/matches/${match.matchId}`)}
         onGoLive={() => navigate('/live')}
         onGoSchedule={() => navigate('/schedule')}
