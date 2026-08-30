@@ -9,7 +9,7 @@ const TOP_RANK_LIMIT = 10;
  * 홈 화면에 그대로 얹는 "포인트" 카드 — 정보(내 포인트·승부예측 전적)와
  * 포인트 순위(전체 TOP 10 + 내 순위) 두 탭을 팝업 없이 바로 보여준다.
  */
-export default function PointPanel({ userId, matchHeight }) {
+export default function PointPanel({ userId }) {
   const [tab, setTab] = useState('info');
 
   const [summary, setSummary] = useState(null);
@@ -47,10 +47,7 @@ export default function PointPanel({ userId, matchHeight }) {
   const meInTop = myRanking != null && myRanking.rank <= TOP_RANK_LIMIT;
 
   return (
-    <section
-      className="cl-card cl-pointpanel"
-      style={matchHeight ? { height: matchHeight } : undefined}
-    >
+    <section className="cl-card cl-pointpanel">
       <div className="cl-ch">
         <h3>포인트</h3>
       </div>

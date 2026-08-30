@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import SeasonSummary from './SeasonSummary.jsx';
 import PointPanel from '../features/points/PointPanel.jsx';
 
@@ -16,21 +16,6 @@ export default function MainScreen({
   const liveMatch = live?.matches?.find((m) => !m.matchFinished) ?? live?.matches?.[0] ?? null;
   const upcoming = upcomingMatches(schedule);
 
-  // 포인트 카드를 왼쪽 순위 카드 높이에 맞춘다. CSS 그리드 stretch 는 두 카드가
-  // 서로의 높이에 영향을 주고받아(탭 전환마다 값이 흔들림) 대신 실측한 높이를 그대로 건다.
-  const schedGridRef = useRef(null);
-  const [standingsHeight, setStandingsHeight] = useState(null);
-
-  useEffect(() => {
-    const standingsEl = schedGridRef.current?.querySelector(':scope > .cl-card:not(.cl-pointpanel)');
-    if (!standingsEl) return undefined;
-    const observer = new ResizeObserver((entries) => {
-      setStandingsHeight(entries[0].contentRect.height);
-    });
-    observer.observe(standingsEl);
-    return () => observer.disconnect();
-  }, [teamStandings]);
-
   return (
     <>
       <Reveal className="cl-board">
@@ -45,9 +30,9 @@ export default function MainScreen({
         />
       </Reveal>
 
-      <Reveal className="cl-schedgrid" innerRef={schedGridRef}>
+      <Reveal className="cl-schedgrid">
         <StandingsCard teamStandings={teamStandings} />
-        <PointPanel userId={userId} matchHeight={standingsHeight} />
+        <PointPanel userId={userId} />
       </Reveal>
 
       <Reveal className="cl-c3">
@@ -310,7 +295,7 @@ function StandingsCard({ teamStandings }) {
 
 /* ── 공용 ── */
 
-function Reveal({ className, children, innerRef }) {
+function Reveal({ className, children }) {
   const ref = useRef(null);
   useEffect(() => {
     const el = ref.current;
@@ -322,8 +307,7 @@ function Reveal({ className, children, innerRef }) {
     io.observe(el);
     return () => io.disconnect();
   }, []);
-  const setRefs = (el) => { ref.current = el; if (innerRef) innerRef.current = el; };
-  return <div ref={setRefs} className={`cl-reveal ${className}`}>{children}</div>;
+  return <div ref={ref} className={`cl-reveal ${className}`}>{children}</div>;
 }
 
 /** 팀 로고가 없을 때 쓰는 대체 크레스트 */

@@ -630,25 +630,30 @@
   padding: 0;
   display: flex;
   flex-direction: column;
+  /* 그리드 stretch 로 순위 카드 높이를 그대로 받는다. min-height:0 이 없으면 이 카드의
+     "자기 내용 기준 최소 높이"가 그리드 행 높이 계산에 다시 끼어들어, 탭 전환마다
+     내용 길이가 달라질 때 순위 카드까지 덩달아 늘었다 줄었다 했다 */
+  min-height: 0;
 }
 
 /* 다른 홈 카드와 같은 제목 스타일(대시 + 얇은 선)을 쓴다. 포인트 카드만 카드 패딩을
    0으로 둬서(안쪽 탭 영역이 직접 여백을 잡음) 여기서 다시 여백을 준다 */
+/* padding 은 내용물만 안으로 밀 뿐 테두리(밑줄) 자체의 폭은 그대로라, 좌우는
+   margin 으로 줘야 순위 카드처럼 밑줄이 카드 안쪽에서 끝난다 */
 .cl-pointpanel .cl-ch {
-  padding: 14px 22px 12px;
-  margin-bottom: 0;
+  padding: 20px 0 12px;
+  margin: 0 22px 0;
 }
 
-/* 순위 카드와 높이를 맞춘 만큼 남는 세로 공간을 정보 탭 안에서 가운데로 고르게 채운다.
-   내용이 넘치는 예외 상황에도(작은 화면 등) 카드가 커지는 대신 이 안에서만 스크롤되게
-   안전장치로 overflow-y 를 둔다. [hidden] 은 display:none 이 이겨야 한다 */
+/* justify-content:center + overflow:auto 조합은 위로 넘친 내용(라벨)이 스크롤로도
+   닿지 않는 음수 스크롤 영역에 갇히는 문제가 있었다 — 위에서부터 순서대로 채우고
+   넘치는 나머지만(있다면) 카드의 overflow:hidden 에 맡긴다. [hidden] 은 display:none 이 이겨야 한다 */
 .point-info:not([hidden]) {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  overflow-y: auto;
+  justify-content: flex-start;
 }
 
 /* 순위 탭은 "TOP 10" 캡션은 고정하고, 목록만 남는 공간을 채우며 넘치면 스크롤된다 —
@@ -2365,8 +2370,8 @@
   }
 
   .cl-pointpanel .cl-ch {
-    padding-left: 18px;
-    padding-right: 18px;
+    margin-left: 18px;
+    margin-right: 18px;
   }
 
   .point-modal-tabs,
