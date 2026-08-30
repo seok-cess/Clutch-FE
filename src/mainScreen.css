@@ -364,7 +364,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--cl-gap);
-  align-items: start;
+  align-items: stretch;
 }
 @media (max-width: 1060px) { .cl-schedgrid { grid-template-columns: 1fr; } }
 

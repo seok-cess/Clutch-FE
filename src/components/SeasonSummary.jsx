@@ -1,4 +1,4 @@
-import { championIcon } from '../ddragon.js';
+import { championIcon, championName } from '../ddragon.js';
 
 /**
  * 메인 화면 하단의 시즌 요약 3열.
@@ -69,7 +69,7 @@ function ChampionCard({ board }) {
             <div key={c.championId} className="cl-cp">
               <span className="cl-cpn">
                 <img src={championIcon(c.championId)} alt="" loading="lazy" />
-                {c.championId}
+                {championName(c.championId)}
               </span>
               <span className="cl-cpv rt" title={`${c.picks}세트 픽`}>{pct(c.pickRate)}</span>
               {/* 승자는 세트 종료 약 5분 뒤 확정된다. 확정 전이면 승률이 비어 온다 */}

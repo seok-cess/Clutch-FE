@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import SeasonSummary from './SeasonSummary.jsx';
+import PointPanel from '../features/points/PointPanel.jsx';
 
 /**
  * 홈(메인) 화면.
@@ -10,7 +11,7 @@ import SeasonSummary from './SeasonSummary.jsx';
  */
 export default function MainScreen({
   live, schedule, teamStandings, recentForm, playerKda, champions,
-  scoreboard, onOpenMatch, onGoLive, onGoSchedule,
+  scoreboard, onOpenMatch, onGoLive, onGoSchedule, userId,
 }) {
   const liveMatch = live?.matches?.find((m) => !m.matchFinished) ?? live?.matches?.[0] ?? null;
   const upcoming = upcomingMatches(schedule);
@@ -31,7 +32,7 @@ export default function MainScreen({
 
       <Reveal className="cl-schedgrid">
         <StandingsCard teamStandings={teamStandings} />
-        <ScheduleCard schedule={schedule} onOpenMatch={onOpenMatch} />
+        <PointPanel userId={userId} />
       </Reveal>
 
       <Reveal className="cl-c3">
@@ -292,54 +293,6 @@ function StandingsCard({ teamStandings }) {
   );
 }
 
-/* ── 일정 ── */
-
-function ScheduleCard({ schedule, onOpenMatch }) {
-  const groups = groupByDay(nearbyMatches(schedule));
-
-  return (
-    <section className="cl-card">
-      <div className="cl-ch"><h3>일정</h3><span className="s">최근 · 예정</span></div>
-
-      {groups.length === 0 ? (
-        <p className="cl-empty">일정을 불러오는 중입니다.</p>
-      ) : groups.map((g) => (
-        <div key={g.key}>
-          <div className="cl-dayh"><b>{g.label}</b>{g.sub}</div>
-          {g.items.map((m) => {
-            const [a, b] = m.teams ?? [];
-            const done = m.state === 'completed';
-            const now = m.state === 'inProgress';
-            return (
-              <button
-                key={m.matchId}
-                className={`cl-ev ${now ? 'now' : ''}`}
-                onClick={() => onOpenMatch?.(m)}
-              >
-                <span className="cl-evt">{time(m.startTime)}</span>
-                <span className={`cl-eva ${done && a?.outcome === 'loss' ? 'dim' : ''}`}>
-                  {a?.code ?? '—'}
-                </span>
-                {done || now ? (
-                  <span className="cl-evs">
-                    {a?.gameWins ?? 0}<span className="c">:</span>{b?.gameWins ?? 0}
-                  </span>
-                ) : (
-                  <span className="cl-evvs">VS</span>
-                )}
-                <span className={`cl-evb ${done && b?.outcome === 'loss' ? 'dim' : ''}`}>
-                  {b?.code ?? '—'}
-                </span>
-                <span className="cl-evg"><Chevron /></span>
-              </button>
-            );
-          })}
-        </div>
-      ))}
-    </section>
-  );
-}
-
 /* ── 공용 ── */
 
 function Reveal({ className, children }) {
@@ -441,41 +394,3 @@ function upcomingMatches(schedule) {
     .sort((x, y) => new Date(x.startTime) - new Date(y.startTime));
 }
 
-/**
- * 일정 카드에 담을 범위.
- * 전체를 그리면 수백 건이라 카드가 끝없이 늘어난다 — 최근 완료 몇 건과 앞으로의 일정만 남긴다.
- */
-function nearbyMatches(schedule) {
-  const all = (schedule ?? []).filter(isMatch);
-  const past = all
-    .filter((m) => m.state === 'completed')
-    .sort((x, y) => new Date(y.startTime) - new Date(x.startTime))
-    .slice(0, 3)
-    .reverse();
-  const nowPlaying = all.filter((m) => m.state === 'inProgress');
-  const next = upcomingMatches(all).slice(0, 5);
-  return [...past, ...nowPlaying, ...next];
-}
-
-function groupByDay(matches) {
-  const out = [];
-  for (const m of matches) {
-    const d = parse(m.startTime);
-    const key = d ? d.toDateString() : 'unknown';
-    let g = out.find((x) => x.key === key);
-    if (!g) {
-      const rel = d ? relativeDay(d) : null;
-      g = {
-        key,
-        label: rel ?? (d ? d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) : '미정'),
-        sub: d ? d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }) : '',
-        items: [],
-      };
-      // 상대 표기를 쓴 날은 부제에 날짜를 남기고, 아니면 요일만 남긴다
-      if (!rel && d) g.sub = d.toLocaleDateString('ko-KR', { weekday: 'short' });
-      out.push(g);
-    }
-    g.items.push(m);
-  }
-  return out;
-}

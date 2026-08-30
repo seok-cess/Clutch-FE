@@ -109,6 +109,11 @@
   display: contents;
 }
 
+.watch-reward-header-control {
+  position: relative;
+  flex: none;
+}
+
 .watch-reward-header {
   position: relative;
   min-width: 184px;
@@ -241,6 +246,25 @@
   animation:
     watch-reward-spin 510ms steps(24),
     watch-reward-coin 520ms var(--app-ease);
+}
+
+.watch-reward-feedback {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 8px);
+  right: 0;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid rgba(210, 91, 82, 0.6);
+  border-radius: 6px;
+  background: #251817;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+  color: #f3aaa2;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 @keyframes watch-reward-ready {

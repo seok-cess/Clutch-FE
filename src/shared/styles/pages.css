@@ -583,7 +583,8 @@
   .coupon-countdown-value,
   .coupon-countdown-bar i,
   .coupon-button,
-  .coupon-modal-close {
+  .coupon-modal-close,
+  .point-modal-tab {
     transition: none;
   }
 }
@@ -622,6 +623,275 @@
   border-radius: var(--app-radius);
   background: rgba(228, 81, 76, 0.06);
   font-size: 0.82rem;
+}
+
+/* 포인트 카드 — 홈 화면에 그대로 얹는 인라인 카드. 쿠폰 모달과 같은 톤(--app-*)을 따라 그린다 */
+.cl-card.cl-pointpanel {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  /* 그리드 stretch 로 순위 카드 높이를 그대로 받는다. min-height:0 이 없으면 이 카드의
+     "자기 내용 기준 최소 높이"가 그리드 행 높이 계산에 다시 끼어들어, 탭 전환마다
+     내용 길이가 달라질 때 순위 카드까지 덩달아 늘었다 줄었다 했다 */
+  min-height: 0;
+}
+
+/* 다른 홈 카드와 같은 제목 스타일(대시 + 얇은 선)을 쓴다. 포인트 카드만 카드 패딩을
+   0으로 둬서(안쪽 탭 영역이 직접 여백을 잡음) 여기서 다시 여백을 준다 */
+/* padding 은 내용물만 안으로 밀 뿐 테두리(밑줄) 자체의 폭은 그대로라, 좌우는
+   margin 으로 줘야 순위 카드처럼 밑줄이 카드 안쪽에서 끝난다 */
+.cl-pointpanel .cl-ch {
+  padding: 20px 0 12px;
+  margin: 0 22px 0;
+}
+
+/* justify-content:center + overflow:auto 조합은 위로 넘친 내용(라벨)이 스크롤로도
+   닿지 않는 음수 스크롤 영역에 갇히는 문제가 있었다 — 위에서부터 순서대로 채우고
+   넘치는 나머지만(있다면) 카드의 overflow:hidden 에 맡긴다. [hidden] 은 display:none 이 이겨야 한다 */
+.point-info:not([hidden]) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+/* 순위 탭은 "TOP 10" 캡션은 고정하고, 목록만 남는 공간을 채우며 넘치면 스크롤된다 —
+   10명이 들어가도 카드 높이가 순위 카드와 어긋나지 않는다 */
+.point-rank:not([hidden]) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.point-modal-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 22px 0;
+  padding: 4px;
+  border: 1px solid var(--app-line-soft);
+  border-radius: var(--app-radius-control);
+  background: var(--app-bg-muted);
+}
+
+.point-modal-tab {
+  min-height: 34px;
+  border: none;
+  border-radius: calc(var(--app-radius-control) - 2px);
+  background: none;
+  color: var(--app-text-muted);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 180ms var(--app-ease), color 180ms var(--app-ease);
+}
+
+.point-modal-tab[aria-selected="true"] {
+  background: var(--app-bg-raised);
+  color: var(--app-text);
+}
+
+.point-info {
+  padding: 12px 22px 18px;
+}
+
+.point-info-summary {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.point-info-label {
+  margin: 0;
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
+}
+
+.point-info-balance {
+  margin: 4px 0 0;
+  color: var(--app-gold);
+  font-size: 1.6rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+
+.point-info-hit-rate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  padding: 2px 0 2px 16px;
+  border-left: 1px solid var(--app-line-soft);
+}
+
+.point-info-hit-rate span {
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
+}
+
+.point-info-hit-rate strong {
+  color: var(--app-gold);
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.point-info-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  border: 1px solid var(--app-line-soft);
+  border-radius: var(--app-radius);
+  background: var(--app-bg-muted);
+}
+
+.point-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--app-line-soft);
+  color: var(--app-text-muted);
+  font-size: 0.84rem;
+}
+
+.point-info-row:last-child {
+  border-bottom: none;
+}
+
+.point-info-row b {
+  color: var(--app-text);
+  font-weight: 800;
+}
+
+.point-info-row .point-info-highlight {
+  color: var(--app-gold);
+}
+
+.point-rank {
+  padding: 12px 22px 18px;
+}
+
+.point-rank-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  color: var(--app-text-muted);
+  font-size: 0.8rem;
+}
+
+.point-rank-top {
+  color: var(--app-gold);
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+.point-rank-list {
+  flex: 1;
+  min-height: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--app-line-soft);
+  border-radius: var(--app-radius);
+  background: var(--app-bg-muted);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.point-rank-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--app-line-soft);
+  color: var(--app-text-muted);
+  font-size: 0.86rem;
+}
+
+.point-rank-row:last-child {
+  border-bottom: none;
+}
+
+.point-rank-num {
+  color: var(--app-text-faint);
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.point-rank-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--app-text);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.point-rank-point {
+  color: var(--app-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.point-rank-badge {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+/* 순위 안에 있을 때 — 금색 (state 는 배지 텍스트로도 함께 표시) */
+.point-rank-row-me {
+  background: rgba(217, 164, 65, 0.14);
+}
+
+.point-rank-row-me .point-rank-num,
+.point-rank-row-me .point-rank-name,
+.point-rank-row-me .point-rank-point {
+  color: var(--app-gold);
+}
+
+.point-rank-row-me .point-rank-badge {
+  background: var(--app-gold);
+  color: #2a1c04;
+}
+
+.point-rank-divider {
+  padding: 4px 0;
+  text-align: center;
+  color: var(--app-text-faint);
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+}
+
+/* 순위 밖일 때 고정 표시 — 금색과 겹치지 않는 다른 강조색 */
+.point-rank-row-outside {
+  background: rgba(90, 169, 230, 0.12);
+}
+
+.point-rank-row-outside .point-rank-num,
+.point-rank-row-outside .point-rank-name,
+.point-rank-row-outside .point-rank-point {
+  color: var(--app-blue);
+}
+
+.point-rank-row-outside .point-rank-badge {
+  background: var(--app-blue);
+  color: #08243b;
 }
 
 .page-live .live-panel > h2 {
@@ -738,25 +1008,24 @@
 }
 
 .live-control-row {
-  --control-offset: max(0px, min(
-    160px,
-    (100vw - var(--content-max)) / 2 - 24px
-  ));
-  display: grid;
-  grid-template-columns: 230px minmax(0, 1fr) 560px;
-  align-items: center;
-  gap: 32px;
-  margin: 96px calc(var(--control-offset) * -1) 22px;
-  padding: 0 20px;
+  margin: 28px 0 22px;
 }
 
-.live-control-row > .replay-control-panel {
-  grid-column: 3;
-  width: 560px;
-  min-height: 76px;
+.live-replay-control {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 56px;
+  opacity: 0.52;
+}
+
+.live-replay-control:focus-within,
+.live-replay-control:hover {
+  opacity: 1;
+}
+
+.live-replay-control .replay-control-panel {
+  width: min(560px, 100%);
   min-width: 0;
-  display: grid;
-  align-content: center;
 }
 
 .replay-control-content {
@@ -942,10 +1211,13 @@
     padding: 0;
   }
 
-  .live-control-row > .replay-control-panel {
-    grid-column: auto;
+  .live-replay-control {
+    margin-top: 32px;
+    opacity: 0.7;
+  }
+
+  .live-replay-control .replay-control-panel {
     width: 100%;
-    min-height: 0;
   }
 
   .live-match-selector-list,
@@ -1440,6 +1712,7 @@
 }
 
 .dashboard-trend-date {
+  align-self: stretch;
   display: grid;
   align-content: start;
   justify-items: center;
@@ -2124,6 +2397,20 @@
   .coupon-modal .coupon-poll-copy {
     margin-left: 18px;
     margin-right: 18px;
+  }
+
+  .cl-pointpanel .cl-ch {
+    margin-left: 18px;
+    margin-right: 18px;
+  }
+
+  .point-modal-tabs,
+  .point-info,
+  .point-rank {
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 18px;
+    padding-right: 18px;
   }
 
 

@@ -30,8 +30,8 @@ export default function LivePage() {
       />
       {error && <ErrorState>{error}</ErrorState>}
       <ActiveCouponClaim userId={userId} />
-      <div className="live-control-row">
-        {live.matches.length > 1 && (
+      {live.matches.length > 1 && (
+        <div className="live-control-row">
           <section className="live-match-selector" aria-label="시청할 경기 선택">
             <div className="live-match-selector-list" role="list">
               {live.matches.map((match) => {
@@ -51,9 +51,8 @@ export default function LivePage() {
               })}
             </div>
           </section>
-        )}
-        <ReplayControlPanel />
-      </div>
+        </div>
+      )}
       {selectedMatch ? (
         <>
           <LiveScoreboard
@@ -70,6 +69,9 @@ export default function LivePage() {
           description="경기가 시작되면 라이브 지표와 참여 기능이 이 화면에 표시됩니다."
         />
       )}
+      <div className="live-replay-control">
+        <ReplayControlPanel />
+      </div>
     </main>
   );
 }
