@@ -14,6 +14,7 @@ const ADMIN_NAVIGATION = [
   { label: '데이터 운영', section: true },
   { to: '/admin/backfill', label: '데이터 백필' },
   { to: '/admin/source-control', label: '소스 제어' },
+  { to: '/admin/integrity-checks', label: '쿠폰 정합성 검증' },
 ];
 
 export default function AdminLayout() {

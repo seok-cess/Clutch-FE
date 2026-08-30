@@ -10,6 +10,8 @@ import CouponEventsPage from '../pages/admin/CouponEventsPage.jsx';
 import CouponClaimHistoryPage from '../pages/admin/CouponClaimHistoryPage.jsx';
 import CouponsPage from '../pages/admin/CouponsPage.jsx';
 import CouponTypesPage from '../pages/admin/CouponTypesPage.jsx';
+import IntegrityCheckDetailPage from '../pages/admin/IntegrityCheckDetailPage.jsx';
+import IntegrityChecksPage from '../pages/admin/IntegrityChecksPage.jsx';
 import SourceControlPage from '../pages/admin/SourceControlPage.jsx';
 import DiagnosticsPage from '../pages/user/DiagnosticsPage.jsx';
 import SamplePage from '../pages/user/SamplePage.jsx';
@@ -58,6 +60,8 @@ export default function AppRoutes() {
         <Route path="coupon-types" element={<CouponTypesPage />} />
         <Route path="coupon-claims" element={<CouponClaimHistoryPage />} />
         <Route path="backfill" element={<BackfillPage />} />
+        <Route path="integrity-checks" element={<IntegrityChecksPage />} />
+        <Route path="integrity-checks/:checkId" element={<IntegrityCheckDetailPage />} />
       </Route>
 
       <Route path="my" element={<Navigate to="/rewards" replace />} />
