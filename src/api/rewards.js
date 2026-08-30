@@ -6,6 +6,11 @@ export const fetchMyPoint = (userId) => requestAsUser('/api/users/me/points', us
 export const fetchMyBets = (userId) => requestAsUser('/api/users/me/bets', userId, {
   fallbackMessage: '배팅 내역을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
 });
+export const fetchMyPointTransactions = (userId) => requestAsUser(
+  '/api/users/me/point-transactions',
+  userId,
+  { fallbackMessage: '포인트 내역을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.' },
+);
 
 export const fetchMyPointSummary = (userId) => requestAsUser('/api/users/me/point-summary', userId, {
   fallbackMessage: '포인트 요약을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',

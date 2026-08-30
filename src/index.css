@@ -363,6 +363,67 @@ body {
   font-size: 0.8rem;
 }
 
+.my-point-history {
+  margin-bottom: 38px;
+}
+
+.my-point-transaction-list {
+  border-top: 1px solid var(--surface);
+  border-bottom: 1px solid var(--surface);
+}
+
+.my-point-transaction {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 18px;
+  min-height: 72px;
+  padding: 12px;
+  border-bottom: 1px solid var(--bg);
+}
+
+.my-point-transaction:last-child {
+  border-bottom: 0;
+}
+
+.my-point-transaction-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.my-point-transaction-copy strong {
+  color: var(--muted-read);
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.my-point-transaction-copy small,
+.my-point-transaction time {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.my-point-transaction time,
+.my-point-transaction-amount {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.my-point-transaction-amount {
+  min-width: 82px;
+  text-align: right;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.my-point-transaction-amount.credit {
+  color: var(--steel);
+}
+
+.my-point-transaction-amount.debit {
+  color: var(--muted-read);
+}
+
 .my-bet-table-wrap {
   overflow-x: auto;
 }
@@ -446,6 +507,22 @@ body {
 
 .my-page-message.error {
   border-left-color: var(--team-red);
+}
+
+@media (max-width: 640px) {
+  .my-point-transaction {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+  }
+
+  .my-point-transaction time {
+    grid-column: 1 / 2;
+  }
+
+  .my-point-transaction-amount {
+    grid-column: 2 / 3;
+    grid-row: 1 / 3;
+  }
 }
 
 /* ---- 일정 (연도 → 월 계층 + 날짜별 그룹 + 좌우 대칭 매치 행) ---- */
