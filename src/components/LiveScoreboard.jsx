@@ -17,7 +17,16 @@ export default function LiveScoreboard({
   watchRewardActive = false,
   onWatchMatchChange = () => {},
 }) {
-  const gameId = match.activeGameId;
+  const activeGame = (match.games ?? []).find((game) => game.gameId === match.activeGameId);
+  // 세트 사이에는 진행 중인 게임이 없다. 이때 마지막 종료 세트를 유지해
+  // 최종 스코어가 대기 화면으로 바로 사라지지 않게 한다.
+  const lastCompletedGame = (match.games ?? []).reduce((latest, game) => {
+    if (game.feedFinished !== true && game.state !== 'completed') return latest;
+    if (!latest || (game.number ?? 0) > (latest.number ?? 0)) return game;
+    return latest;
+  }, null);
+  const currentGame = activeGame ?? lastCompletedGame;
+  const gameId = currentGame?.gameId ?? null;
   const [teamA, teamB] = match.teams;
   const [teams, setTeams] = useState(null);   // id 포함 (스코어보드 로고 매칭)
 
@@ -32,10 +41,9 @@ export default function LiveScoreboard({
       .catch(() => { /* 로고 없이도 화면은 정상 */ });
     return () => { cancelled = true; };
   }, [match.matchId, preview]);
-  const currentGame = (match.games ?? []).find((g) => g.gameId === gameId);
-
-  // 진행중인 세트가 피드 기준으로 끝났으면 소스 state(약 5분 지연)를 기다리지 않는다
-  const setEnded = currentGame?.feedFinished === true;
+  // 완료 세트에서는 포인트 적립을 재개하지 않는다.
+  // 피드가 먼저 종료되면 소스 state 갱신 지연도 기다리지 않는다.
+  const setEnded = currentGame?.feedFinished === true || currentGame?.state === 'completed';
 
   // 세트 스코어 — 소스가 준 gameWins 를 그대로 쓴다.
   // games[].winnerTeamId 를 세면 서버가 매치 도중 켜졌을 때(재시작·배포) 그전 세트를

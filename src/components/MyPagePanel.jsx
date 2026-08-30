@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchMyBets, fetchMyPoint, fetchMyPointTransactions } from '../api.js';
 
+const HISTORY_DISPLAY_LIMIT = 10;
+
 const BET_STATUS_LABEL = {
   PLACED: '진행 중',
   WON: '적중',
@@ -154,6 +156,9 @@ export default function MyPagePanel({ userId, matches }) {
     loadMyData();
   }, [loadMyData]);
 
+  const recentPointTransactions = pointTransactions.slice(0, HISTORY_DISPLAY_LIMIT);
+  const recentBets = bets.slice(0, HISTORY_DISPLAY_LIMIT);
+
   return (
     <section className="panel cropmarks my-page-panel">
       <div className="my-page-heading">
@@ -178,14 +183,13 @@ export default function MyPagePanel({ userId, matches }) {
           <div className="my-point-history">
             <div className="my-bet-history-heading">
               <h3>포인트 내역</h3>
-              <span>{pointTransactions.length}건</span>
             </div>
 
             {pointTransactions.length === 0 ? (
               <p className="my-page-empty">포인트 변동 내역이 없습니다.</p>
             ) : (
               <div className="my-point-transaction-list">
-                {pointTransactions.map((transaction) => {
+                {recentPointTransactions.map((transaction) => {
                   const label = POINT_TRANSACTION_LABEL[transaction.type]
                     ?? { title: '포인트 변동', detail: transaction.type };
                   return (
@@ -210,7 +214,6 @@ export default function MyPagePanel({ userId, matches }) {
           <div className="my-bet-history">
             <div className="my-bet-history-heading">
               <h3>내 승부예측</h3>
-              <span>{bets.length}건</span>
             </div>
 
             {bets.length === 0 ? (
@@ -232,7 +235,7 @@ export default function MyPagePanel({ userId, matches }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {bets.map((bet) => {
+                    {recentBets.map((bet) => {
                       const labels = betLabels(bet, matches);
                       const settlement = settlementLabels(bet);
                       return (
