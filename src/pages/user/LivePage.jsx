@@ -19,7 +19,6 @@ export default function LivePage() {
     error,
   } = useAppData();
   const selectedMatch = live.matches.find((match) => match.matchId === activeWatchMatchId)
-    ?? live.matches[0]
     ?? null;
 
   return (
@@ -30,7 +29,7 @@ export default function LivePage() {
       />
       {error && <ErrorState>{error}</ErrorState>}
       <ActiveCouponClaim userId={userId} />
-      {live.matches.length > 1 && (
+      {live.matches.length > 0 && (live.matches.length > 1 || !selectedMatch) && (
         <div className="live-control-row">
           <section className="live-match-selector" aria-label="시청할 경기 선택">
             <div className="live-match-selector-list" role="list">
@@ -65,8 +64,10 @@ export default function LivePage() {
         </>
       ) : (
         <EmptyState
-          title="현재 진행 중인 경기가 없습니다."
-          description="경기가 시작되면 라이브 지표와 참여 기능이 이 화면에 표시됩니다."
+          title={live.matches.length > 0 ? '시청할 경기를 선택해 주세요.' : '현재 진행 중인 경기가 없습니다.'}
+          description={live.matches.length > 0
+            ? '경기 선택 버튼을 눌러 라이브 지표와 참여 기능을 확인할 수 있습니다.'
+            : '경기가 시작되면 라이브 지표와 참여 기능이 이 화면에 표시됩니다.'}
         />
       )}
       <div className="live-replay-control">

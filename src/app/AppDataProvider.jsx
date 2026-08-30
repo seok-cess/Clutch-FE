@@ -140,12 +140,10 @@ export function AppDataProvider({ children }) {
   const autoWatchMatchId = watchableMatchIds[0] ?? null;
 
   useEffect(() => {
-    setActiveWatchMatchId((currentMatchId) => (
-      currentMatchId && watchableMatchIds.includes(currentMatchId)
-        ? currentMatchId
-        : autoWatchMatchId
-    ));
-  }, [autoWatchMatchId, watchableMatchIds, userId]);
+    // 최초 진입 때만 진행 중인 첫 경기를 선택한다. 세트가 종료됐다는 이유로
+    // 사용자가 선택한 경기를 다른 경기로 바꾸면 시청 세션까지 의도치 않게 전환된다.
+    setActiveWatchMatchId((currentMatchId) => currentMatchId ?? autoWatchMatchId);
+  }, [autoWatchMatchId]);
 
   useEffect(() => {
     if (!autoWatchMatchId || location.pathname !== '/') {
