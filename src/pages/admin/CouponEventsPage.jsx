@@ -3,6 +3,7 @@ import { NavLink } from 'react-router';
 import { fetchCouponEvents } from '../../api/admin.js';
 import { EmptyState, ErrorState, LoadingState } from '../../shared/components/AsyncState.jsx';
 import PageHeader from '../../shared/components/PageHeader.jsx';
+import Pagination from '../../shared/components/Pagination.jsx';
 import StatusBadge from '../../shared/components/StatusBadge.jsx';
 import { formatDateTime, formatNumber } from '../../shared/utils/format.js';
 
@@ -21,22 +22,23 @@ const MODE_LABEL = {
 
 export default function CouponEventsPage() {
   const [status, setStatus] = useState('');
+  const [page, setPage] = useState(0);
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadEvents = useCallback(async (cursor) => {
+  const loadEvents = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setResponse(await fetchCouponEvents({ status: status || undefined, cursor }));
+      setResponse(await fetchCouponEvents({ status: status || undefined, page }));
     } catch (requestError) {
       setResponse(null);
       setError(requestError.message);
     } finally {
       setLoading(false);
     }
-  }, [status]);
+  }, [page, status]);
 
   useEffect(() => {
     loadEvents();
@@ -54,13 +56,19 @@ export default function CouponEventsPage() {
       <section className="toolbar data-surface">
         <label className="compact-field">
           <span>상태</span>
-          <select value={status} onChange={(event) => setStatus(event.target.value)}>
+          <select
+            value={status}
+            onChange={(event) => {
+              setStatus(event.target.value);
+              setPage(0);
+            }}
+          >
             {STATUS_FILTERS.map((filter) => (
               <option key={filter.value} value={filter.value}>{filter.label}</option>
             ))}
           </select>
         </label>
-        <button className="button-secondary" type="button" onClick={() => loadEvents()} disabled={loading}>
+        <button className="button-secondary" type="button" onClick={loadEvents} disabled={loading}>
           새로고침
         </button>
       </section>
@@ -105,13 +113,13 @@ export default function CouponEventsPage() {
               </tbody>
             </table>
           </div>
-          {response?.hasNext && (
-            <div className="table-pagination">
-              <button className="button-secondary" type="button" onClick={() => loadEvents(response.nextCursor)}>
-                다음 목록
-              </button>
-            </div>
-          )}
+          <Pagination
+            page={page}
+            totalPages={response?.totalPages}
+            onPageChange={setPage}
+            disabled={loading}
+            label="쿠폰 이벤트 페이지 이동"
+          />
         </section>
       )}
     </div>
