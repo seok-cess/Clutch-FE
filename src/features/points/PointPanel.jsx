@@ -5,6 +5,12 @@ import { LoadingState, ErrorState } from '../../shared/components/AsyncState.jsx
 
 const TOP_RANK_LIMIT = 10;
 
+function formatPredictionHitRate(predictionCount, predictionSuccessCount) {
+  if (predictionCount === 0) return '—';
+
+  return `${((predictionSuccessCount / predictionCount) * 100).toFixed(1)}%`;
+}
+
 /**
  * 홈 화면에 그대로 얹는 "포인트" 카드 — 정보(내 포인트·승부예측 전적)와
  * 포인트 순위(전체 TOP 10 + 내 순위) 두 탭을 팝업 없이 바로 보여준다.
@@ -90,8 +96,16 @@ export default function PointPanel({ userId }) {
           <LoadingState>포인트 정보를 불러오는 중입니다.</LoadingState>
         ) : (
           <>
-            <p className="point-info-label">내 보유 포인트</p>
-            <p className="point-info-balance">{formatPoint(summary.point)}</p>
+            <div className="point-info-summary">
+              <div>
+                <p className="point-info-label">내 보유 포인트</p>
+                <p className="point-info-balance">{formatPoint(summary.point)}</p>
+              </div>
+              <div className="point-info-hit-rate">
+                <span>적중률</span>
+                <strong>{formatPredictionHitRate(summary.predictionCount, summary.predictionSuccessCount)}</strong>
+              </div>
+            </div>
 
             <ul className="point-info-list">
               <li className="point-info-row">
