@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchMyBets, fetchMyPoint } from '../api.js';
+import { fetchMyBets, fetchMyPoint, fetchMyPointTransactions } from '../api.js';
 
 const BET_STATUS_LABEL = {
   PLACED: '진행 중',
@@ -13,6 +13,13 @@ const EVENT_STATUS_LABEL = {
   CLOSED: '마감',
   SETTLED: '정산 완료',
   CANCELLED: '취소',
+};
+
+const POINT_TRANSACTION_LABEL = {
+  WATCH_REWARD: { title: '시청 포인트 수령', detail: '5분 시청 보상' },
+  BET_STAKE: { title: '승부예측 참여', detail: '포인트 사용' },
+  BET_PAYOUT: { title: '승부예측 적중', detail: '정산 포인트 지급' },
+  BET_REFUND: { title: '승부예측 환불', detail: '취소된 배팅 반환' },
 };
 
 function teamLabel(team) {
@@ -108,6 +115,7 @@ function settlementLabels(bet) {
 /** 현재 사용자의 보유 포인트와 전체 배팅 이력을 표시한다. */
 export default function MyPagePanel({ userId, matches }) {
   const [point, setPoint] = useState(null);
+  const [pointTransactions, setPointTransactions] = useState([]);
   const [bets, setBets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -115,6 +123,7 @@ export default function MyPagePanel({ userId, matches }) {
   const loadMyData = useCallback(async () => {
     if (!userId) {
       setPoint(null);
+      setPointTransactions([]);
       setBets([]);
       setError('상단에 사용자 ID를 입력해 주세요.');
       return;
@@ -123,14 +132,17 @@ export default function MyPagePanel({ userId, matches }) {
     setLoading(true);
     setError(null);
     try {
-      const [pointResponse, betResponse] = await Promise.all([
+      const [pointResponse, pointTransactionResponse, betResponse] = await Promise.all([
         fetchMyPoint(userId),
+        fetchMyPointTransactions(userId),
         fetchMyBets(userId),
       ]);
       setPoint(pointResponse.point);
+      setPointTransactions(pointTransactionResponse);
       setBets(betResponse);
     } catch (requestError) {
       setPoint(null);
+      setPointTransactions([]);
       setBets([]);
       setError(requestError.message);
     } finally {
@@ -163,9 +175,41 @@ export default function MyPagePanel({ userId, matches }) {
             <small>USER {userId}</small>
           </div>
 
+          <div className="my-point-history">
+            <div className="my-bet-history-heading">
+              <h3>포인트 내역</h3>
+              <span>{pointTransactions.length}건</span>
+            </div>
+
+            {pointTransactions.length === 0 ? (
+              <p className="my-page-empty">포인트 변동 내역이 없습니다.</p>
+            ) : (
+              <div className="my-point-transaction-list">
+                {pointTransactions.map((transaction) => {
+                  const label = POINT_TRANSACTION_LABEL[transaction.type]
+                    ?? { title: '포인트 변동', detail: transaction.type };
+                  return (
+                    <div className="my-point-transaction" key={transaction.transactionId}>
+                      <div className="my-point-transaction-copy">
+                        <strong>{label.title}</strong>
+                        <small>{label.detail}</small>
+                      </div>
+                      <time dateTime={transaction.createdAt}>
+                        {formatCreatedAt(transaction.createdAt)}
+                      </time>
+                      <strong className={`my-point-transaction-amount ${transaction.pointDelta > 0 ? 'credit' : 'debit'}`}>
+                        {formatPointChange(transaction.pointDelta)}
+                      </strong>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div className="my-bet-history">
             <div className="my-bet-history-heading">
-              <h3>내 배팅</h3>
+              <h3>내 승부예측</h3>
               <span>{bets.length}건</span>
             </div>
 
