@@ -1440,6 +1440,7 @@
 }
 
 .dashboard-trend-date {
+  align-self: stretch;
   display: grid;
   align-content: start;
   justify-items: center;

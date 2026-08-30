@@ -137,7 +137,7 @@ function TrendSeries({ items, values, scale, tone, title, showDates, partialDate
     <section className={`dashboard-trend-series dashboard-trend-series-${tone}`} aria-label={title}>
       <div className="dashboard-trend-series-heading">
         <strong>{title}</strong>
-        <span><i aria-hidden="true" />별도 눈금</span>
+        <span><i aria-hidden="true" />{title}</span>
       </div>
       <div className="dashboard-trend-plot">
         <div className="dashboard-trend-axis" aria-hidden="true">
