@@ -231,7 +231,7 @@ export default function WatchPointPanel({ matchId, userId, enabled, active, onAc
       aria-label={stateLabel}
       title={error ?? message}
     >
-      <span className="watch-reward-coin" aria-hidden="true">P</span>
+      <span className="watch-reward-coin" aria-hidden="true" />
       <span className="watch-reward-copy">
         <span className="watch-reward-time">
           {error
