@@ -183,3 +183,20 @@ export function startBackfill({ limit = 1000, all = false } = {}) {
   const params = new URLSearchParams({ limit: String(limit), all: String(all) });
   return requestJson(`/api/admin/backfill?${params}`, { method: 'POST' });
 }
+
+export const startCouponIntegrityCheck = (adminId) => requestAsAdmin(
+  '/api/v1/admin/integrity-checks',
+  adminId,
+  { method: 'POST' },
+);
+
+export function fetchCouponIntegrityChecks(adminId, { cursor, size = 20 } = {}) {
+  const params = new URLSearchParams({ size: String(size) });
+  if (cursor) params.set('cursor', String(cursor));
+  return requestAsAdmin(`/api/v1/admin/integrity-checks?${params}`, adminId);
+}
+
+export const fetchCouponIntegrityCheck = (adminId, checkId) => requestAsAdmin(
+  `/api/v1/admin/integrity-checks/${encodeURIComponent(checkId)}`,
+  adminId,
+);
