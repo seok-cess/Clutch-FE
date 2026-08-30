@@ -83,96 +83,98 @@ export default function PointPanel({ userId }) {
         </button>
       </div>
 
-      <div
-        id="point-panel-info"
-        className="point-info"
-        role="tabpanel"
-        aria-labelledby="point-tab-info"
-        hidden={tab !== 'info'}
-      >
-        {summaryError ? (
-          <ErrorState>{summaryError}</ErrorState>
-        ) : !summary ? (
-          <LoadingState>포인트 정보를 불러오는 중입니다.</LoadingState>
-        ) : (
-          <>
-            <div className="point-info-summary">
-              <div>
-                <p className="point-info-label">내 보유 포인트</p>
-                <p className="point-info-balance">{formatPoint(summary.point)}</p>
+      <div className="point-body">
+        <div
+          id="point-panel-info"
+          className="point-info"
+          role="tabpanel"
+          aria-labelledby="point-tab-info"
+          hidden={tab !== 'info'}
+        >
+          {summaryError ? (
+            <ErrorState>{summaryError}</ErrorState>
+          ) : !summary ? (
+            <LoadingState>포인트 정보를 불러오는 중입니다.</LoadingState>
+          ) : (
+            <>
+              <div className="point-info-summary">
+                <div>
+                  <p className="point-info-label">내 보유 포인트</p>
+                  <p className="point-info-balance">{formatPoint(summary.point)}</p>
+                </div>
+                <div className="point-info-hit-rate">
+                  <span>적중률</span>
+                  <strong>{formatPredictionHitRate(summary.predictionCount, summary.predictionSuccessCount)}</strong>
+                </div>
               </div>
-              <div className="point-info-hit-rate">
-                <span>적중률</span>
-                <strong>{formatPredictionHitRate(summary.predictionCount, summary.predictionSuccessCount)}</strong>
+
+              <ul className="point-info-list">
+                <li className="point-info-row">
+                  <span>승부예측</span>
+                  <b>{formatNumber(summary.predictionCount)}회</b>
+                </li>
+                <li className="point-info-row">
+                  <span>승부예측 성공</span>
+                  <b>{formatNumber(summary.predictionSuccessCount)}회</b>
+                </li>
+                <li className="point-info-row">
+                  <span>한 번에 가장 많이 얻은 포인트</span>
+                  <b className="point-info-highlight">+{formatPoint(summary.maxEarnedPoint)}</b>
+                </li>
+              </ul>
+            </>
+          )}
+        </div>
+
+        <div
+          id="point-panel-ranking"
+          className="point-rank"
+          role="tabpanel"
+          aria-labelledby="point-tab-ranking"
+          hidden={tab !== 'ranking'}
+        >
+          {rankingError ? (
+            <ErrorState>{rankingError}</ErrorState>
+          ) : !rankingLoaded ? (
+            <LoadingState>포인트 순위를 불러오는 중입니다.</LoadingState>
+          ) : (
+            <>
+              <div className="point-rank-head">
+                <span>전체 유저 보유 포인트 순위</span>
+                <span className="point-rank-top">TOP {TOP_RANK_LIMIT}</span>
               </div>
-            </div>
 
-            <ul className="point-info-list">
-              <li className="point-info-row">
-                <span>승부예측</span>
-                <b>{formatNumber(summary.predictionCount)}회</b>
-              </li>
-              <li className="point-info-row">
-                <span>승부예측 성공</span>
-                <b>{formatNumber(summary.predictionSuccessCount)}회</b>
-              </li>
-              <li className="point-info-row">
-                <span>한 번에 가장 많이 얻은 포인트</span>
-                <b className="point-info-highlight">+{formatPoint(summary.maxEarnedPoint)}</b>
-              </li>
-            </ul>
-          </>
-        )}
-      </div>
-
-      <div
-        id="point-panel-ranking"
-        className="point-rank"
-        role="tabpanel"
-        aria-labelledby="point-tab-ranking"
-        hidden={tab !== 'ranking'}
-      >
-        {rankingError ? (
-          <ErrorState>{rankingError}</ErrorState>
-        ) : !rankingLoaded ? (
-          <LoadingState>포인트 순위를 불러오는 중입니다.</LoadingState>
-        ) : (
-          <>
-            <div className="point-rank-head">
-              <span>전체 유저 보유 포인트 순위</span>
-              <span className="point-rank-top">TOP {TOP_RANK_LIMIT}</span>
-            </div>
-
-            <ol className="point-rank-list">
-              {rankings.map((row) => {
-                const isMe = meInTop && row.rank === myRanking.rank;
-                return (
-                  <li key={row.rank} className={`point-rank-row ${isMe ? 'point-rank-row-me' : ''}`}>
-                    <span className="point-rank-num">{row.rank}</span>
-                    <span className="point-rank-name">
-                      {row.displayName}
-                      {isMe && <span className="point-rank-badge">나</span>}
-                    </span>
-                    <span className="point-rank-point">{formatPoint(row.point)}</span>
-                  </li>
-                );
-              })}
-              {!meInTop && myRanking && (
-                <>
-                  <li className="point-rank-divider" aria-hidden="true">⋯</li>
-                  <li className="point-rank-row point-rank-row-outside">
-                    <span className="point-rank-num">{myRanking.rank}</span>
-                    <span className="point-rank-name">
-                      나
-                      <span className="point-rank-badge">MY RANK</span>
-                    </span>
-                    <span className="point-rank-point">{formatPoint(myRanking.point)}</span>
-                  </li>
-                </>
-              )}
-            </ol>
-          </>
-        )}
+              <ol className="point-rank-list">
+                {rankings.map((row) => {
+                  const isMe = meInTop && row.rank === myRanking.rank;
+                  return (
+                    <li key={row.rank} className={`point-rank-row ${isMe ? 'point-rank-row-me' : ''}`}>
+                      <span className="point-rank-num">{row.rank}</span>
+                      <span className="point-rank-name">
+                        {row.displayName}
+                        {isMe && <span className="point-rank-badge">나</span>}
+                      </span>
+                      <span className="point-rank-point">{formatPoint(row.point)}</span>
+                    </li>
+                  );
+                })}
+                {!meInTop && myRanking && (
+                  <>
+                    <li className="point-rank-divider" aria-hidden="true">⋯</li>
+                    <li className="point-rank-row point-rank-row-outside">
+                      <span className="point-rank-num">{myRanking.rank}</span>
+                      <span className="point-rank-name">
+                        나
+                        <span className="point-rank-badge">MY RANK</span>
+                      </span>
+                      <span className="point-rank-point">{formatPoint(myRanking.point)}</span>
+                    </li>
+                  </>
+                )}
+              </ol>
+            </>
+          )}
+        </div>
       </div>
     </section>
   );

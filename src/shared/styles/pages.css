@@ -645,10 +645,20 @@
   margin: 0 22px 0;
 }
 
-/* justify-content:center + overflow:auto 조합은 위로 넘친 내용(라벨)이 스크롤로도
-   닿지 않는 음수 스크롤 영역에 갇히는 문제가 있었다 — 위에서부터 순서대로 채우고
-   넘치는 나머지만(있다면) 카드의 overflow:hidden 에 맡긴다. [hidden] 은 display:none 이 이겨야 한다 */
-.point-info:not([hidden]) {
+/* 그리드 stretch 의 "auto 트랙 = 자식들 중 최대 콘텐츠 높이" 특성 때문에, 순위 탭
+   목록이 순위표보다 길어지면 카드 자체가(그리고 stretch 로 묶인 순위표까지) 그
+   길이에 맞춰 늘어났다 — 정보 탭 내용은 비활성이어도 레이아웃에 항상 남겨 카드
+   높이의 기준으로 삼고(visibility 로만 숨김), 순위 탭은 position:absolute 로 그
+   자리를 그대로 덮어 채우게 해서 카드 크기 계산에서 완전히 빠지게 한다 */
+.point-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.point-info {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -656,10 +666,15 @@
   justify-content: flex-start;
 }
 
+.point-info[hidden] {
+  visibility: hidden;
+}
+
 /* 순위 탭은 "TOP 10" 캡션은 고정하고, 목록만 남는 공간을 채우며 넘치면 스크롤된다 —
    10명이 들어가도 카드 높이가 순위 카드와 어긋나지 않는다 */
 .point-rank:not([hidden]) {
-  flex: 1;
+  position: absolute;
+  inset: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
