@@ -37,14 +37,17 @@
 
 /* .live-panel 의 뷰포트 브레이크아웃 계산(100vw)이 세로 스크롤바 폭까지 포함해서
    일부 너비에서 몇 px 넘치는 걸 막는다 — 가로 스크롤이 생기지 않게 하는 안전장치.
-   body 만으로는 뷰포트로 전파가 안 되는 브라우저가 있어 html 에도 함께 건다 */
+   body 만으로는 뷰포트로 전파가 안 되는 브라우저가 있어 html 에도 함께 건다.
+   overflow-x: hidden 은 overflow-y 가 명시돼 있지 않으면 브라우저가 이를 auto 로
+   같이 바꿔버려(스펙 규정) 전 페이지의 상단 네비게이션 position:sticky 가 깨졌다 —
+   스크롤 컨테이너를 만들지 않는 clip 을 대신 쓴다 */
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
-  overflow-x: hidden;
+  overflow-x: clip;
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
