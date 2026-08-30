@@ -4,6 +4,7 @@ import { fetchCouponClaimHistory } from '../../../api/admin.js';
 import { useAdmin } from '../../../layouts/AdminLayout.jsx';
 import { EmptyState, ErrorState, LoadingState } from '../../../shared/components/AsyncState.jsx';
 import PageHeader from '../../../shared/components/PageHeader.jsx';
+import Pagination from '../../../shared/components/Pagination.jsx';
 import StatusBadge from '../../../shared/components/StatusBadge.jsx';
 import { formatDateTime } from '../../../shared/utils/format.js';
 
@@ -95,8 +96,7 @@ export default function CouponClaimHistory() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState(() => filtersFromSearchParams(searchParams));
   const [query, setQuery] = useState(() => buildQuery(filtersFromSearchParams(searchParams)));
-  const [cursor, setCursor] = useState(null);
-  const [cursorHistory, setCursorHistory] = useState([]);
+  const [page, setPage] = useState(0);
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -108,7 +108,7 @@ export default function CouponClaimHistory() {
     try {
       setResponse(await fetchCouponClaimHistory(adminId, {
         ...query,
-        cursor,
+        page,
       }));
     } catch (requestError) {
       setResponse(null);
@@ -116,7 +116,7 @@ export default function CouponClaimHistory() {
     } finally {
       setLoading(false);
     }
-  }, [adminId, cursor, query, reloadKey]);
+  }, [adminId, page, query, reloadKey]);
 
   useEffect(() => {
     loadClaims();
@@ -134,8 +134,7 @@ export default function CouponClaimHistory() {
       return;
     }
     setError(null);
-    setCursor(null);
-    setCursorHistory([]);
+    setPage(0);
     setQuery(buildQuery(filters));
   };
 
@@ -143,21 +142,8 @@ export default function CouponClaimHistory() {
     setFilters(EMPTY_FILTERS);
     setQuery({});
     setSearchParams({}, { replace: true });
-    setCursor(null);
-    setCursorHistory([]);
+    setPage(0);
     setReloadKey((value) => value + 1);
-  };
-
-  const goNext = () => {
-    if (!response?.hasNext || !response.nextCursor) return;
-    setCursorHistory((history) => [...history, cursor]);
-    setCursor(response.nextCursor);
-  };
-
-  const goPrevious = () => {
-    if (cursorHistory.length === 0) return;
-    setCursor(cursorHistory.at(-1) ?? null);
-    setCursorHistory((history) => history.slice(0, -1));
   };
 
   const selectedSearchType = SEARCH_TYPES.find((type) => type.value === filters.searchType);
@@ -319,27 +305,13 @@ export default function CouponClaimHistory() {
               </tbody>
             </table>
           </div>
-          <div className="claim-history-pagination">
-            <span>{cursorHistory.length + 1}페이지</span>
-            <div>
-              <button
-                className="button-secondary button-small"
-                type="button"
-                onClick={goPrevious}
-                disabled={cursorHistory.length === 0 || loading}
-              >
-                이전
-              </button>
-              <button
-                className="button-secondary button-small"
-                type="button"
-                onClick={goNext}
-                disabled={!response?.hasNext || loading}
-              >
-                다음
-              </button>
-            </div>
-          </div>
+          <Pagination
+            page={page}
+            totalPages={response?.totalPages}
+            onPageChange={setPage}
+            disabled={loading}
+            label="쿠폰 발급 내역 페이지 이동"
+          />
         </section>
       )}
     </>

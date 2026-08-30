@@ -1,9 +1,8 @@
 import { requestAsAdmin, requestJson } from './client.js';
 
-export function fetchCouponEvents({ status, cursor, size = 20 } = {}) {
-  const params = new URLSearchParams({ size: String(size) });
+export function fetchCouponEvents({ status, page = 0, size = 20 } = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (status) params.set('status', status);
-  if (cursor) params.set('cursor', String(cursor));
   return requestJson(`/api/v1/admin/coupon-events?${params}`);
 }
 
@@ -144,10 +143,10 @@ export function fetchCouponClaimHistory(adminId, {
   couponTypeId,
   from,
   to,
-  cursor,
+  page = 0,
   size = 20,
 } = {}) {
-  const params = new URLSearchParams({ size: String(size) });
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (eventKeyword?.trim()) params.set('eventKeyword', eventKeyword.trim());
   if (triggerKeyword?.trim()) params.set('triggerKeyword', triggerKeyword.trim());
   if (userId) params.set('userId', String(userId));
@@ -156,7 +155,6 @@ export function fetchCouponClaimHistory(adminId, {
   if (couponTypeId) params.set('couponTypeId', String(couponTypeId));
   if (from) params.set('from', from);
   if (to) params.set('to', to);
-  if (cursor) params.set('cursor', String(cursor));
   return requestAsAdmin(`/api/v1/admin/coupon-claims?${params}`, adminId);
 }
 
