@@ -165,24 +165,23 @@ export function IntegrityResultsTable({ results = [], limit }) {
       <table className="app-table integrity-results-table">
         <thead>
           <tr>
+            <th>순번</th>
+            <th>검사항목</th>
+            <th>설명</th>
             <th>판정</th>
-            <th>검증 항목</th>
             <th>위반 건수</th>
-            <th>기준</th>
           </tr>
         </thead>
         <tbody>
-          {visibleResults.map((result) => (
+          {visibleResults.map((result, index) => (
             <tr key={result.checkCode}>
+              <td>{index + 1}</td>
+              <td><code>{result.checkCode}</code></td>
+              <td><strong>{result.description}</strong></td>
               <td><StatusBadge status={result.verdict} label={VERDICT_LABEL[result.verdict]} /></td>
-              <td>
-                <strong>{result.description}</strong>
-                <code>{result.checkCode}</code>
-              </td>
               <td className={result.violationCount > 0 ? `count-${String(result.verdict).toLowerCase()}` : ''}>
                 {formatNumber(result.violationCount)}
               </td>
-              <td><StatusBadge status={result.severity} label={VERDICT_LABEL[result.severity]} /></td>
             </tr>
           ))}
         </tbody>
